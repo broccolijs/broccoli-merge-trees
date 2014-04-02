@@ -2,7 +2,6 @@ var fs = require('fs')
 var path = require('path')
 var walkSync = require('walk-sync')
 var Writer = require('broccoli-writer')
-
 var mapSeries = require('promise-map-series')
 
 
