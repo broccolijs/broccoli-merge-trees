@@ -16,7 +16,7 @@ var mergeTrees = require('broccoli-merge-trees');
 var outputTree = mergeTrees(inputTrees, options);
 ```
 
-* **`inputTrees`**: An array of trees.
+* **`inputTrees`**: An array of trees
 
 * **`options`**: A hash of options
 
