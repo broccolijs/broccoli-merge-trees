@@ -1,5 +1,4 @@
 var fs = require('fs')
-var path = require('path')
 var walkSync = require('walk-sync')
 var Writer = require('broccoli-writer')
 var mapSeries = require('promise-map-series')
@@ -24,12 +23,13 @@ TreeMerger.prototype.write = function (readTree, destDir) {
   return mapSeries(this.inputTrees, readTree).then(function (treePaths) {
     for (var i = treePaths.length - 1; i >= 0; i--) {
       var treeContents = walkSync(treePaths[i])
+      var fileIndex
       for (var j = 0; j < treeContents.length; j++) {
         var relativePath = treeContents[j]
         var destPath = destDir + '/' + relativePath
         if (relativePath.slice(-1) === '/') { // is directory
           relativePath = relativePath.slice(0, -1) // chomp "/"
-          var fileIndex = files[relativePath]
+          fileIndex = files[relativePath]
           if (fileIndex != null) {
             throwFileAndDirectoryCollision(relativePath, fileIndex, i)
           }
@@ -42,32 +42,31 @@ TreeMerger.prototype.write = function (readTree, destDir) {
           if (directoryIndex != null) {
             throwFileAndDirectoryCollision(relativePath, i, directoryIndex)
           }
-          var fileIndex = files[relativePath]
+          fileIndex = files[relativePath]
           if (fileIndex != null) {
             if (!self.options.overwrite) {
               throw new Error('Merge error: ' +
-                'File "' + relativePath + '" exists in ' +
+                'file "' + relativePath + '" exists in ' +
                 treePaths[i] + ' and ' + treePaths[fileIndex] + ' - ' +
-                'pass option { overwrite: true } to mergeTree in order ' +
+                'pass option { overwrite: true } to mergeTrees in order ' +
                 'to have the latter file win')
-            } else {
-              // Ignore this file. It is "overwritten" by a file we
-              // copied earlier, thanks to reverse iteration over trees
             }
+            // Else, ignore this file. It is "overwritten" by a file we copied
+            // earlier, thanks to reverse iteration over trees
           } else {
-            // Link file into place. We should have a fallback in case
-            // we cannot hardlink.
+            // Link file into place. We should have a fallback in case we
+            // cannot hardlink.
             fs.linkSync(treePaths[i] + '/' + relativePath, destPath)
             files[relativePath] = i
           }
         }
       }
+    }
 
-      function throwFileAndDirectoryCollision (relativePath, fileIndex, directoryIndex) {
-        throw new Error('Merge error: "' + relativePath +
-          '" exists as a file in ' + treePaths[fileIndex] +
-          ' but as a directory in ' + treePaths[directoryIndex])
-      }
+    function throwFileAndDirectoryCollision (relativePath, fileIndex, directoryIndex) {
+      throw new Error('Merge error: "' + relativePath +
+        '" exists as a file in ' + treePaths[fileIndex] +
+        ' but as a directory in ' + treePaths[directoryIndex])
     }
   })
 }

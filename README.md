@@ -1,5 +1,7 @@
 # broccoli-merge-trees
 
+[![Build Status](https://travis-ci.org/joliss/broccoli-merge-trees.png?branch=master)](https://travis-ci.org/joliss/broccoli-merge-trees)
+
 Copy multiple trees on top of each other, resulting in a single merged tree.
 
 ## Installation
