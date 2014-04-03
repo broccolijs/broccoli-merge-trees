@@ -1,5 +1,7 @@
 # master
 
+* Update dependencies
+
 # 0.1.1
 
 * Use new broccoli-writer base class
