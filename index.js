@@ -1,6 +1,7 @@
 var fs = require('fs')
 var walkSync = require('walk-sync')
 var Writer = require('broccoli-writer')
+var helpers = require('broccoli-kitchen-sink-helpers')
 var mapSeries = require('promise-map-series')
 
 
@@ -54,9 +55,8 @@ TreeMerger.prototype.write = function (readTree, destDir) {
             // Else, ignore this file. It is "overwritten" by a file we copied
             // earlier, thanks to reverse iteration over trees
           } else {
-            // Link file into place. We should have a fallback in case we
-            // cannot hardlink.
-            fs.linkSync(treePaths[i] + '/' + relativePath, destPath)
+            helpers.copyPreserveSync(
+              treePaths[i] + '/' + relativePath, destPath)
             files[relativePath] = i
           }
         }
