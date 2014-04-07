@@ -17,6 +17,10 @@ function TreeMerger (inputTrees, options) {
   this.options = options || {}
 }
 
+var toLowerCase = function (str) {
+  return str.toLowerCase()
+}
+
 TreeMerger.prototype.write = function (readTree, destDir) {
   var self = this
   var files = {}
@@ -24,6 +28,8 @@ TreeMerger.prototype.write = function (readTree, destDir) {
   return mapSeries(this.inputTrees, readTree).then(function (treePaths) {
     for (var i = treePaths.length - 1; i >= 0; i--) {
       var treeContents = walkSync(treePaths[i])
+      treeContents = treeContents.map(toLowerCase)
+
       var fileIndex
       for (var j = 0; j < treeContents.length; j++) {
         var relativePath = treeContents[j]
