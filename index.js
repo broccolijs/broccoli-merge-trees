@@ -43,7 +43,7 @@ TreeMerger.prototype.write = function (readTree, destDir) {
           if (directoryIndex != null) {
             throwFileAndDirectoryCollision(relativePath, i, directoryIndex)
           }
-          fileIndex = files[relativePath]
+          fileIndex = files[relativePath.toLowerCase()]
           if (fileIndex != null) {
             if (!self.options.overwrite) {
               throw new Error('Merge error: ' +
@@ -57,7 +57,7 @@ TreeMerger.prototype.write = function (readTree, destDir) {
           } else {
             helpers.copyPreserveSync(
               treePaths[i] + '/' + relativePath, destPath)
-            files[relativePath] = i
+            files[relativePath.toLowerCase()] = i
           }
         }
       }
