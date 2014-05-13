@@ -21,10 +21,22 @@ TreeMerger.prototype.write = function (readTree, destDir) {
   var self = this
   var files = {}
   var directories = {}
+  var defaultRegexOpts = ['__MACOSX.+','.DS_Store','.bower.json']
+  var regexOpts = self.options.regFilter ?
+      self.options.regFilter.join('|')
+      :defaultRegexOpts.join('|')
+
+  function fileFilter (str) {
+    return str.match( new RegExp(regexOpts,'g') ) === null
+  }
 
   return mapSeries(this.inputTrees, readTree).then(function (treePaths) {
     for (var i = treePaths.length - 1; i >= 0; i--) {
       var treeContents = walkSync(treePaths[i])
+
+      if (regexOpts) {
+            treeContents = treeContents.filter(fileFilter)
+      }
 
       var fileIndex
       for (var j = 0; j < treeContents.length; j++) {
