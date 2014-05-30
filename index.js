@@ -8,13 +8,14 @@ var mapSeries = require('promise-map-series')
 module.exports = TreeMerger
 TreeMerger.prototype = Object.create(Writer.prototype)
 TreeMerger.prototype.constructor = TreeMerger
-function TreeMerger (inputTrees, options) {
-  if (!(this instanceof TreeMerger)) return new TreeMerger(inputTrees, options)
+function TreeMerger (inputTrees, options, name) {
+  if (!(this instanceof TreeMerger)) return new TreeMerger(inputTrees, options, name)
   if (!Array.isArray(inputTrees)) {
     throw new Error('Expected array, got ' + inputTrees)
   }
   this.inputTrees = inputTrees
   this.options = options || {}
+  this.description = this.constructor.name + ' (' + name + ') '
 }
 
 TreeMerger.prototype.write = function (readTree, destDir) {
