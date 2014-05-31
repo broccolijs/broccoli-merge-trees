@@ -1,5 +1,7 @@
 # master
 
+* Make file overwriting case insensitive (on all platforms)
+
 # 0.1.3
 
 * Copy instead of hardlinking
