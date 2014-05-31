@@ -21,9 +21,11 @@ TreeMerger.prototype.write = function (readTree, destDir) {
   var self = this
   var files = {}
   var directories = {}
+
   return mapSeries(this.inputTrees, readTree).then(function (treePaths) {
     for (var i = treePaths.length - 1; i >= 0; i--) {
       var treeContents = walkSync(treePaths[i])
+
       var fileIndex
       for (var j = 0; j < treeContents.length; j++) {
         var relativePath = treeContents[j]
