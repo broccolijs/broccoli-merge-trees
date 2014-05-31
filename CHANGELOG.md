@@ -1,5 +1,7 @@
 # master
 
+# 0.1.4
+
 * Make file overwriting case insensitive (on all platforms)
 
 # 0.1.3
