@@ -45,6 +45,17 @@ test 'mergeTrees', (t) ->
     .catch (err) ->
       t.similar err.message, /file "foo" exists in .* and .* overwrite: true/
 
+  test 'file names should be treated case insensitive', (t) ->
+    t.plan 1
+
+    mergeFixtures [
+      foo: '1'
+    ,
+      Foo: '2'
+    ]
+    .catch (err) ->
+      t.similar err.message, /file "foo" exists in .* and .* overwrite: true/
+
   test 'accepts { overwrite: true }', (t) ->
     t.plan 1
     mergeFixtures [
