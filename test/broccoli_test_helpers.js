@@ -1,4 +1,4 @@
-var Writer = require('broccoli-writer')
+var quickTemp = require('quick-temp')
 var Promise = require('rsvp').Promise
 var fixturify = require('fixturify')
 
@@ -55,13 +55,17 @@ exports.treeToFixture = function (tree) {
 
 
 exports.makeFixtureTree = FixtureTree
-FixtureTree.prototype = Object.create(Writer.prototype)
-FixtureTree.prototype.constructor = FixtureTree
 function FixtureTree (fixtureObject) {
   if (!(this instanceof FixtureTree)) return new FixtureTree(fixtureObject);
-  this.fixtureObject = fixtureObject
+  quickTemp.makeOrRemake(this, 'tmpDestDir')
+  fixturify.writeSync(this.tmpDestDir, fixtureObject)
 }
 
-FixtureTree.prototype.write = function (readTree, destDir) {
-  fixturify.writeSync(destDir, this.fixtureObject)
+FixtureTree.prototype.read = function (readTree) {
+  // Re-use on each rebuild
+  return this.tmpDestDir
+}
+
+FixtureTree.prototype.cleanup = function () {
+  quickTemp.remove(this, 'tmpDestDir')
 }
