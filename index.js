@@ -35,6 +35,7 @@ TreeMerger.prototype.write = function (readTree, destDir) {
   var self = this
   var files = {}
   var directories = {}
+  var cwd = process.cwd()
   return mapSeries(this.inputTrees, readTree).then(function (treePaths) {
     for (var i = treePaths.length - 1; i >= 0; i--) {
       START('walkSync')
@@ -74,10 +75,22 @@ TreeMerger.prototype.write = function (readTree, destDir) {
             // Else, ignore this file. It is "overwritten" by a file we copied
             // earlier, thanks to reverse iteration over trees
           } else {
-            START('copy'); STOP('pathManipulation')
-            helpers.copyPreserveSync(
-              treePaths[i] + '/' + relativePath, destPath)
-            STOP('copy'); START('pathManipulation')
+            // START('copy'); STOP('pathManipulation')
+            // helpers.copyPreserveSync(
+            //   treePaths[i] + '/' + relativePath, destPath)
+            // STOP('copy'); START('pathManipulation')
+            var srcPath = treePaths[i] + '/' + relativePath
+            if (srcPath[0] !== '/') {
+              // We may want to make sure we always have absolute paths to
+              // trees, to avoid having to do the expensive path.resolve call
+              // here. Doing a string operation with cwd is technically
+              // incorrect (breaks on directory symlinks), but we use it to
+              // simulate the performance we *could* be getting.
+              srcPath = cwd + '/' + srcPath
+            }
+            START('symlink'); STOP('pathManipulation')
+            fs.symlinkSync(srcPath, destPath)
+            STOP('symlink'); START('pathManipulation')
             files[relativePath.toLowerCase()] = i
           }
         }
