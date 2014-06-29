@@ -29,7 +29,7 @@ TreeMerger.prototype.processDirectory = function(baseDir, relativePath) {
   }
 
   var entries  = fs.readdirSync(baseDir +  pathSep + relativePath).sort()
-  var basePath = baseDir[0] === pathSep ? baseDir : this.rootPath + pathSep + baseDir
+  var basePath = this.fullyQualifiedPath(baseDir)
 
   for (var i = 0; i < entries.length; i++) {
     var entryRelativePath = relativePath + entries[i];
@@ -116,3 +116,19 @@ TreeMerger.prototype.throwFileAndDirectoryCollision = function (relativePath, fi
                   '" exists as a file in ' + fileTreePath +
                   ' but as a directory in ' + directoryTreePath)
 }
+
+TreeMerger.prototype.fullyQualifiedPath = function fullyQualifiedPath(path) {
+  if (isWindows) {
+    if (path.match(/^[A-Za-z]\:\\/)) {
+      return path;
+    } else {
+      return this.rootPath + pathSep + path;
+    }
+  } else {
+    if (path[0] === pathSep) {
+      return path;
+    } else {
+     return this.rootPath + pathSep + path;
+    }
+  }
+};
