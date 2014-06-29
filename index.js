@@ -48,7 +48,7 @@ TreeMerger.prototype.processDirectory = function(baseDir, relativePath) {
       if (directoryTreePath == null) {
         this.directories[lowerEntryRelativePath] = baseDir
 
-        // on windows we still need to traverse subdirs (for hard-linking):
+        // on windows we still need to traverse subdirs (for copying):
         if (isWindows) {
           fs.mkdirSync(destPath)
           this.processDirectory(baseDir, entryRelativePath)
@@ -88,12 +88,7 @@ TreeMerger.prototype.processDirectory = function(baseDir, relativePath) {
 
         // if this is a relative path, append the rootPath (which defaults to process.cwd)
         if (isWindows) {
-          // hardlinking is preferable on windows
-          if (baseDir === basePath) {
-            fs.linkSync(sourcePath, destPath)
-          } else {
-            helpers.copyPreserveSync(sourcePath, destPath)
-          }
+          helpers.copyPreserveSync(sourcePath, destPath)
         } else {
           fs.symlinkSync(basePath + pathSep + entryRelativePath, destPath);
         }
