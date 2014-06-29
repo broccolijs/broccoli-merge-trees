@@ -32,19 +32,20 @@ TreeMerger.prototype.processDirectory = function(baseDir, relativePath) {
   var basePath = this.fullyQualifiedPath(baseDir)
 
   for (var i = 0; i < entries.length; i++) {
-    var entryRelativePath = relativePath + entries[i];
-    var sourcePath        = basePath + pathSep + entryRelativePath;
-    var destPath          = this.destDir + pathSep + entryRelativePath;
-    var stats             = fs.statSync(sourcePath)
+    var entryRelativePath      = relativePath + entries[i];
+    var lowerEntryRelativePath = entryRelativePath.toLowerCase()
+    var sourcePath             = basePath + pathSep + entryRelativePath;
+    var destPath               = this.destDir + pathSep + entryRelativePath;
+    var stats                  = fs.statSync(sourcePath)
 
     if (stats.isDirectory()) {
-      fileTreePath = this.files[entryRelativePath]
+      fileTreePath = this.files[lowerEntryRelativePath]
       if (fileTreePath != null) {
         this.throwFileAndDirectoryCollision(entryRelativePath, fileTreePath, baseDir)
       }
-      directoryTreePath = this.directories[entryRelativePath]
+      directoryTreePath = this.directories[lowerEntryRelativePath]
       if (directoryTreePath == null) {
-        this.directories[entryRelativePath] = baseDir
+        this.directories[lowerEntryRelativePath] = baseDir
 
         // on windows we still need to traverse subdirs (for hard-linking):
         //if (isWindows) {
@@ -52,14 +53,14 @@ TreeMerger.prototype.processDirectory = function(baseDir, relativePath) {
         //  this.processDirectory(baseDir, entryRelativePath)
         //} else {
           fs.symlinkSync(sourcePath, destPath);
-          this.linkedDirectories[entryRelativePath] = baseDir;
+          this.linkedDirectories[lowerEntryRelativePath] = baseDir;
         //}
       } else {
-        if (this.linkedDirectories[entryRelativePath]) {
+        if (this.linkedDirectories[lowerEntryRelativePath]) {
           // a prior symlinked directory was found
           fs.unlinkSync(destPath);
           fs.mkdirSync(destPath);
-          delete this.linkedDirectories[entryRelativePath];
+          delete this.linkedDirectories[lowerEntryRelativePath];
 
           // re-process the original tree's version of this entryRelativePath
           this.processDirectory(directoryTreePath, entryRelativePath)
@@ -72,7 +73,7 @@ TreeMerger.prototype.processDirectory = function(baseDir, relativePath) {
       if (directoryTreePath != null) {
         this.throwFileAndDirectoryCollision(entryRelativePath, baseDir, directoryTreePath)
       }
-      fileTreePath = this.files[entryRelativePath.toLowerCase()]
+      fileTreePath = this.files[lowerEntryRelativePath]
       if (fileTreePath != null) {
         if (!this.options.overwrite) {
           throw new Error('Merge error: ' +
@@ -82,7 +83,7 @@ TreeMerger.prototype.processDirectory = function(baseDir, relativePath) {
                           'to have the latter file win')
         }
       } else {
-        this.files[entryRelativePath.toLowerCase()] = baseDir
+        this.files[lowerEntryRelativePath] = baseDir
 
         // if this is a relative path, append the rootPath (which defaults to process.cwd)
         //if (isWindows) {
