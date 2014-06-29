@@ -27,82 +27,70 @@ TreeMerger.prototype.processDirectory = function(baseDir, relativePath) {
     relativePath += '/'
   }
 
-  var entries = fs.readdirSync(baseDir + '/' + relativePath).sort()
+  var entries  = fs.readdirSync(baseDir + '/' + relativePath).sort()
+  var basePath = baseDir[0] === '/' ? baseDir : this.rootPath + '/' + baseDir
 
   for (var i = 0; i < entries.length; i++) {
-    var sourcePath = baseDir + '/' + relativePath + entries[i];
-    var destPath   = this.destDir + '/' + relativePath + '/' + entries[i]
-    var stats      = fs.statSync(sourcePath)
+    var entryRelativePath = relativePath + entries[i];
+    var sourcePath        = basePath + '/' + entryRelativePath;
+    var destPath          = this.destDir + '/' + entryRelativePath;
+    var stats             = fs.statSync(sourcePath)
 
     if (stats.isDirectory()) {
-      fileTreePath = this.files[relativePath]
-      if (fileIndex != null) {
-        this.throwFileAndDirectoryCollision(relativePath, fileTreePath, baseDir)
+      fileTreePath = this.files[entryRelativePath]
+      if (fileTreePath != null) {
+        this.throwFileAndDirectoryCollision(entryRelativePath, fileTreePath, baseDir)
       }
-      directoryTreePath = this.directories[relativePath]
+      directoryTreePath = this.directories[entryRelativePath]
       if (directoryTreePath == null) {
-        //var basePath = baseDir[0] === '/' ? treePath : this.rootPath + '/' + treePath
-        this.directories[relativePath] = baseDir
+        this.directories[entryRelativePath] = baseDir
 
         // on windows we still need to traverse subdirs (for hard-linking):
         if (isWindows) {
           fs.mkdirSync(destPath)
-          this.processDirectory(baseDir, relativePath + '/' + entries[i])
+          this.processDirectory(baseDir, entryRelativePath)
         } else {
           fs.symlinkSync(sourcePath, destPath);
+          this.linkedDirectories[entryRelativePath] = baseDir;
         }
       } else {
-        this.processDirectory(baseDir, relativePath + '/' + entries[i])
+        if (this.linkedDirectories[entryRelativePath]) {
+          // a prior symlinked directory was found
+          fs.unlinkSync(destPath);
+          fs.mkdirSync(destPath);
+          delete this.linkedDirectories[entryRelativePath];
+
+          // re-process the original tree's version of this entryRelativePath
+          this.processDirectory(directoryTreePath, entryRelativePath)
+        }
+
+        this.processDirectory(baseDir, entryRelativePath)
       }
     } else {
-      directoryTreePath = this.directories[relativePath]
+      directoryTreePath = this.directories[entryRelativePath]
       if (directoryTreePath != null) {
-        this.throwFileAndDirectoryCollision(relativePath, treePath, directoryTreePath)
+        this.throwFileAndDirectoryCollision(entryRelativePath, baseDir, directoryTreePath)
       }
-      fileTreePath = this.files[relativePath.toLowerCase()]
+      fileTreePath = this.files[entryRelativePath.toLowerCase()]
       if (fileTreePath != null) {
         if (!this.options.overwrite) {
           throw new Error('Merge error: ' +
-                          'file "' + relativePath + '" exists in ' +
-                          treePath + ' and ' + fileTreePath + ' - ' +
+                          'file "' + entryRelativePath + '" exists in ' +
+                          baseDir + ' and ' + fileTreePath + ' - ' +
                           'pass option { overwrite: true } to mergeTrees in order ' +
                           'to have the latter file win')
         }
-        // Else, ignore this file. It is "overwritten" by a file we copied
-        // earlier, thanks to reverse iteration over trees
       } else {
-        this.files[relativePath.toLowerCase()] = treePath
+        this.files[entryRelativePath.toLowerCase()] = baseDir
 
         // if this is a relative path, append the rootPath (which defaults to process.cwd)
         if (isWindows) {
           // hardlinking is preferable on windows
-          fs.linkSync(treePath + '/' + relativePath, destPath)
+          fs.linkSync(baseDir + '/' + entryRelativePath, destPath)
         } else {
-          var basePath = treePath[0] === '/' ? treePath : this.rootPath + '/' + treePath
-          fs.symlinkSync(basePath + '/' + relativePath, destPath);
+          fs.symlinkSync(basePath + '/' + entryRelativePath, destPath);
         }
       }
-    }
-  }
-}
-
-TreeMerger.prototype.processTreePath = function(treePath) {
-  var treeContents = walkSync(treePath)
-  var fileIndex
-  for (var j = 0; j < treeContents.length; j++) {
-    var relativePath = treeContents[j]
-    var destPath = this.destDir + '/' + relativePath
-    if (relativePath.slice(-1) === '/') { // is directory
-      relativePath = relativePath.slice(0, -1) // chomp "/"
-      fileTreePath = this.files[relativePath]
-      if (fileIndex != null) {
-        this.throwFileAndDirectoryCollision(relativePath, fileTreePath, treePath)
-      }
-      if (this.directories[relativePath] == null) {
-        fs.mkdirSync(destPath)
-        this.directories[relativePath] = treePath
-      }
-    } else { // is file
     }
   }
 }
@@ -110,13 +98,14 @@ TreeMerger.prototype.processTreePath = function(treePath) {
 TreeMerger.prototype.write = function (readTree, destDir) {
   this.destDir = destDir
   this.files = {}
+  this.linkedDirectories = {}
   this.directories = {}
 
   return mapSeries(this.inputTrees, readTree).then(function (treePaths) {
     this.treePaths = treePaths
 
     for (var i = treePaths.length - 1; i >= 0; i--) {
-      this.processTreePath(treePaths[i], i)
+      this.processDirectory(treePaths[i])
     }
   }.bind(this))
 }
@@ -125,27 +114,4 @@ TreeMerger.prototype.throwFileAndDirectoryCollision = function (relativePath, fi
   throw new Error('Merge error: "' + relativePath +
                   '" exists as a file in ' + fileTreePath +
                   ' but as a directory in ' + directoryTreePath)
-}
-
-function walkSync (baseDir, relativePath) {
-  // Inside this function, prefer string concatenation to the slower path.join
-  // https://github.com/joyent/node/pull/6929
-  if (relativePath == null) {
-    relativePath = ''
-  } else if (relativePath.slice(-1) !== '/') {
-    relativePath += '/'
-  }
-
-  var results = []
-  var entries = fs.readdirSync(baseDir + '/' + relativePath).sort()
-  for (var i = 0; i < entries.length; i++) {
-    var stats = fs.statSync(baseDir + '/' + relativePath + entries[i])
-    if (stats.isDirectory()) {
-      results.push(relativePath + entries[i] + '/')
-      results = results.concat(walkSync(baseDir, relativePath + entries[i]))
-    } else {
-      results.push(relativePath + entries[i])
-    }
-  }
-  return results
 }
