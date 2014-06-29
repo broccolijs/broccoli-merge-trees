@@ -15,33 +15,49 @@ function TreeMerger (inputTrees, options) {
   this.rootPath   = this.options.rootPath || process.cwd();
 }
 
-TreeMerger.prototype.processTreePath = function(treePath, index) {
-  var treeContents = walkSync(treePath)
-  var fileIndex
-  for (var j = 0; j < treeContents.length; j++) {
-    var relativePath = treeContents[j]
-    var destPath = this.destDir + '/' + relativePath
-    if (relativePath.slice(-1) === '/') { // is directory
-      relativePath = relativePath.slice(0, -1) // chomp "/"
-      fileIndex = this.files[relativePath]
+TreeMerger.prototype.processDirectory = function(baseDir, relativePath) {
+  var directoryTreePath;
+  // Inside this function, prefer string concatenation to the slower path.join
+  // https://github.com/joyent/node/pull/6929
+  if (relativePath == null) {
+    relativePath = ''
+  } else if (relativePath.slice(-1) !== '/') {
+    relativePath += '/'
+  }
+
+  var entries = fs.readdirSync(baseDir + '/' + relativePath).sort()
+
+  for (var i = 0; i < entries.length; i++) {
+    var sourcePath = baseDir + '/' + relativePath + entries[i];
+    var destPath   = this.destDir + '/' + relativePath + '/' + entries[i]
+    var stats      = fs.statSync(sourcePath)
+
+    if (stats.isDirectory()) {
+      fileTreePath = this.files[relativePath]
       if (fileIndex != null) {
-        this.throwFileAndDirectoryCollision(relativePath, fileIndex, index)
+        this.throwFileAndDirectoryCollision(relativePath, fileTreePath, baseDir)
       }
-      if (this.directories[relativePath] == null) {
+      directoryTreePath = this.directories[relativePath]
+      if (directoryTreePath == null) {
+        //var basePath = baseDir[0] === '/' ? treePath : this.rootPath + '/' + treePath
+        fs.symlinkSync(sourcePath, destPath);
+        this.directories[relativePath] = baseDir
+      } else {
         fs.mkdirSync(destPath)
-        this.directories[relativePath] = index
+
+        this.processDirectory(baseDir, relativePath + '/' + entries[i])
       }
-    } else { // is file
-      var directoryIndex = this.directories[relativePath]
-      if (directoryIndex != null) {
-        this.throwFileAndDirectoryCollision(relativePath, index, directoryIndex)
+    } else {
+      directoryTreePath = this.directories[relativePath]
+      if (directoryTreePath != null) {
+        this.throwFileAndDirectoryCollision(relativePath, treePath, directoryTreePath)
       }
-      fileIndex = this.files[relativePath.toLowerCase()]
-      if (fileIndex != null) {
+      fileTreePath = this.files[relativePath.toLowerCase()]
+      if (fileTreePath != null) {
         if (!this.options.overwrite) {
           throw new Error('Merge error: ' +
                           'file "' + relativePath + '" exists in ' +
-                          treePath + ' and ' + this.treePaths[fileIndex] + ' - ' +
+                          treePath + ' and ' + fileTreePath + ' - ' +
                           'pass option { overwrite: true } to mergeTrees in order ' +
                           'to have the latter file win')
         }
@@ -51,8 +67,29 @@ TreeMerger.prototype.processTreePath = function(treePath, index) {
         // if this is a relative path, append the rootPath (which defaults to process.cwd)
         var basePath = treePath[0] === '/' ? treePath : this.rootPath + '/' + treePath
         fs.symlinkSync(basePath + '/' + relativePath, destPath);
-        this.files[relativePath.toLowerCase()] = index
+        this.files[relativePath.toLowerCase()] = treePath
       }
+    }
+  }
+}
+
+TreeMerger.prototype.processTreePath = function(treePath) {
+  var treeContents = walkSync(treePath)
+  var fileIndex
+  for (var j = 0; j < treeContents.length; j++) {
+    var relativePath = treeContents[j]
+    var destPath = this.destDir + '/' + relativePath
+    if (relativePath.slice(-1) === '/') { // is directory
+      relativePath = relativePath.slice(0, -1) // chomp "/"
+      fileTreePath = this.files[relativePath]
+      if (fileIndex != null) {
+        this.throwFileAndDirectoryCollision(relativePath, fileTreePath, treePath)
+      }
+      if (this.directories[relativePath] == null) {
+        fs.mkdirSync(destPath)
+        this.directories[relativePath] = treePath
+      }
+    } else { // is file
     }
   }
 }
@@ -71,10 +108,10 @@ TreeMerger.prototype.write = function (readTree, destDir) {
   }.bind(this))
 }
 
-TreeMerger.prototype.throwFileAndDirectoryCollision = function (relativePath, fileIndex, directoryIndex) {
+TreeMerger.prototype.throwFileAndDirectoryCollision = function (relativePath, fileTreePath, directoryTreePath) {
   throw new Error('Merge error: "' + relativePath +
-                  '" exists as a file in ' + this.treePaths[fileIndex] +
-                  ' but as a directory in ' + this.treePaths[directoryIndex])
+                  '" exists as a file in ' + fileTreePath +
+                  ' but as a directory in ' + directoryTreePath)
 }
 
 function walkSync (baseDir, relativePath) {
