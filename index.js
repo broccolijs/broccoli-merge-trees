@@ -1,6 +1,7 @@
 var fs = require('fs')
 var Writer = require('broccoli-writer')
 var mapSeries = require('promise-map-series')
+var helpers = require('broccoli-kitchen-sink-helpers')
 
 var isWindows = /^win/.test(process.platform);
 var pathSep   = require('path').sep;
@@ -48,13 +49,13 @@ TreeMerger.prototype.processDirectory = function(baseDir, relativePath) {
         this.directories[lowerEntryRelativePath] = baseDir
 
         // on windows we still need to traverse subdirs (for hard-linking):
-        //if (isWindows) {
-        //  fs.mkdirSync(destPath)
-        //  this.processDirectory(baseDir, entryRelativePath)
-        //} else {
+        if (isWindows) {
+          fs.mkdirSync(destPath)
+          this.processDirectory(baseDir, entryRelativePath)
+        } else {
           fs.symlinkSync(sourcePath, destPath);
           this.linkedDirectories[lowerEntryRelativePath] = baseDir;
-        //}
+        }
       } else {
         if (this.linkedDirectories[lowerEntryRelativePath]) {
           // a prior symlinked directory was found
@@ -86,12 +87,16 @@ TreeMerger.prototype.processDirectory = function(baseDir, relativePath) {
         this.files[lowerEntryRelativePath] = baseDir
 
         // if this is a relative path, append the rootPath (which defaults to process.cwd)
-        //if (isWindows) {
-        //  // hardlinking is preferable on windows
-        //  fs.linkSync(basePath + pathSep + entryRelativePath, destPath)
-        //} else {
+        if (isWindows) {
+          // hardlinking is preferable on windows
+          if (baseDir === basePath) {
+            fs.linkSync(sourcePath, destPath)
+          } else {
+            helpers.copyPreserveSync(sourcePath, destPath)
+          }
+        } else {
           fs.symlinkSync(basePath + pathSep + entryRelativePath, destPath);
-        //}
+        }
       }
     }
   }
