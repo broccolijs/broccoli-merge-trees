@@ -87,7 +87,7 @@ TreeMerger.prototype.processDirectory = function(baseDir, relativePath) {
         // if this is a relative path, append the rootPath (which defaults to process.cwd)
         if (isWindows) {
           // hardlinking is preferable on windows
-          fs.linkSync(baseDir + pathSep + entryRelativePath, destPath)
+          fs.linkSync(basePath + pathSep + entryRelativePath, destPath)
         } else {
           fs.symlinkSync(basePath + pathSep + entryRelativePath, destPath);
         }
