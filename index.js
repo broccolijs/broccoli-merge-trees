@@ -3,6 +3,7 @@ var Writer = require('broccoli-writer')
 var mapSeries = require('promise-map-series')
 
 var isWindows = /^win/.test(process.platform);
+var pathSep   = require('path').sep;
 
 module.exports = TreeMerger
 TreeMerger.prototype = Object.create(Writer.prototype)
@@ -18,22 +19,22 @@ function TreeMerger (inputTrees, options) {
 }
 
 TreeMerger.prototype.processDirectory = function(baseDir, relativePath) {
-  var directoryTreePath;
+  var directoryTreePath, fileTreePath;
   // Inside this function, prefer string concatenation to the slower path.join
   // https://github.com/joyent/node/pull/6929
   if (relativePath == null) {
     relativePath = ''
-  } else if (relativePath.slice(-1) !== '/') {
-    relativePath += '/'
+  } else if (relativePath.slice(-1) !== pathSep) {
+    relativePath += pathSep
   }
 
-  var entries  = fs.readdirSync(baseDir + '/' + relativePath).sort()
-  var basePath = baseDir[0] === '/' ? baseDir : this.rootPath + '/' + baseDir
+  var entries  = fs.readdirSync(baseDir +  pathSep + relativePath).sort()
+  var basePath = baseDir[0] === pathSep ? baseDir : this.rootPath + pathSep + baseDir
 
   for (var i = 0; i < entries.length; i++) {
     var entryRelativePath = relativePath + entries[i];
-    var sourcePath        = basePath + '/' + entryRelativePath;
-    var destPath          = this.destDir + '/' + entryRelativePath;
+    var sourcePath        = basePath + pathSep + entryRelativePath;
+    var destPath          = this.destDir + pathSep + entryRelativePath;
     var stats             = fs.statSync(sourcePath)
 
     if (stats.isDirectory()) {
@@ -86,9 +87,9 @@ TreeMerger.prototype.processDirectory = function(baseDir, relativePath) {
         // if this is a relative path, append the rootPath (which defaults to process.cwd)
         if (isWindows) {
           // hardlinking is preferable on windows
-          fs.linkSync(baseDir + '/' + entryRelativePath, destPath)
+          fs.linkSync(baseDir + pathSep + entryRelativePath, destPath)
         } else {
-          fs.symlinkSync(basePath + '/' + entryRelativePath, destPath);
+          fs.symlinkSync(basePath + pathSep + entryRelativePath, destPath);
         }
       }
     }
