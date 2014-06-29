@@ -121,7 +121,7 @@ TreeMerger.prototype.fullyQualifiedPath = function fullyQualifiedPath(path) {
   var qualifed;
 
   if (isWindows) {
-    qualifed = path.match(/^[A-Za-z]\:\\/);
+    qualifed = path[1] === ':';
   } else {
     qualifed = path[0] === pathSep;
   }
