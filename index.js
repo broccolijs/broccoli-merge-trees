@@ -90,7 +90,7 @@ TreeMerger.prototype.processDirectory = function(baseDir, relativePath) {
         if (isWindows) {
           helpers.copyPreserveSync(sourcePath, destPath)
         } else {
-          fs.symlinkSync(basePath + pathSep + entryRelativePath, destPath);
+          fs.symlinkSync(sourcePath, destPath);
         }
       }
     }
