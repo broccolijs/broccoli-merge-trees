@@ -2,6 +2,8 @@ var fs = require('fs')
 var Writer = require('broccoli-writer')
 var mapSeries = require('promise-map-series')
 
+var isWindows = /^win/.test(process.platform);
+
 module.exports = TreeMerger
 TreeMerger.prototype = Object.create(Writer.prototype)
 TreeMerger.prototype.constructor = TreeMerger
@@ -40,11 +42,16 @@ TreeMerger.prototype.processDirectory = function(baseDir, relativePath) {
       directoryTreePath = this.directories[relativePath]
       if (directoryTreePath == null) {
         //var basePath = baseDir[0] === '/' ? treePath : this.rootPath + '/' + treePath
-        fs.symlinkSync(sourcePath, destPath);
         this.directories[relativePath] = baseDir
-      } else {
-        fs.mkdirSync(destPath)
 
+        // on windows we still need to traverse subdirs (for hard-linking):
+        if (isWindows) {
+          fs.mkdirSync(destPath)
+          this.processDirectory(baseDir, relativePath + '/' + entries[i])
+        } else {
+          fs.symlinkSync(sourcePath, destPath);
+        }
+      } else {
         this.processDirectory(baseDir, relativePath + '/' + entries[i])
       }
     } else {
@@ -64,10 +71,16 @@ TreeMerger.prototype.processDirectory = function(baseDir, relativePath) {
         // Else, ignore this file. It is "overwritten" by a file we copied
         // earlier, thanks to reverse iteration over trees
       } else {
-        // if this is a relative path, append the rootPath (which defaults to process.cwd)
-        var basePath = treePath[0] === '/' ? treePath : this.rootPath + '/' + treePath
-        fs.symlinkSync(basePath + '/' + relativePath, destPath);
         this.files[relativePath.toLowerCase()] = treePath
+
+        // if this is a relative path, append the rootPath (which defaults to process.cwd)
+        if (isWindows) {
+          // hardlinking is preferable on windows
+          fs.linkSync(treePath + '/' + relativePath, destPath)
+        } else {
+          var basePath = treePath[0] === '/' ? treePath : this.rootPath + '/' + treePath
+          fs.symlinkSync(basePath + '/' + relativePath, destPath);
+        }
       }
     }
   }
