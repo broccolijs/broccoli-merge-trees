@@ -118,17 +118,17 @@ TreeMerger.prototype.throwFileAndDirectoryCollision = function (relativePath, fi
 }
 
 TreeMerger.prototype.fullyQualifiedPath = function fullyQualifiedPath(path) {
+  var qualifed;
+
   if (isWindows) {
-    if (path.match(/^[A-Za-z]\:\\/)) {
-      return path;
-    } else {
-      return this.rootPath + pathSep + path;
-    }
+    qualifed = path.match(/^[A-Za-z]\:\\/);
   } else {
-    if (path[0] === pathSep) {
-      return path;
-    } else {
-     return this.rootPath + pathSep + path;
-    }
+    qualifed = path[0] === pathSep;
+  }
+
+  if (qualifed) {
+    return path;
+  } else {
+    return this.rootPath + pathSep + path;
   }
 };
