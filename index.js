@@ -47,13 +47,13 @@ TreeMerger.prototype.processDirectory = function(baseDir, relativePath) {
         this.directories[entryRelativePath] = baseDir
 
         // on windows we still need to traverse subdirs (for hard-linking):
-        if (isWindows) {
-          fs.mkdirSync(destPath)
-          this.processDirectory(baseDir, entryRelativePath)
-        } else {
+        //if (isWindows) {
+        //  fs.mkdirSync(destPath)
+        //  this.processDirectory(baseDir, entryRelativePath)
+        //} else {
           fs.symlinkSync(sourcePath, destPath);
           this.linkedDirectories[entryRelativePath] = baseDir;
-        }
+        //}
       } else {
         if (this.linkedDirectories[entryRelativePath]) {
           // a prior symlinked directory was found
@@ -85,12 +85,12 @@ TreeMerger.prototype.processDirectory = function(baseDir, relativePath) {
         this.files[entryRelativePath.toLowerCase()] = baseDir
 
         // if this is a relative path, append the rootPath (which defaults to process.cwd)
-        if (isWindows) {
-          // hardlinking is preferable on windows
-          fs.linkSync(basePath + pathSep + entryRelativePath, destPath)
-        } else {
+        //if (isWindows) {
+        //  // hardlinking is preferable on windows
+        //  fs.linkSync(basePath + pathSep + entryRelativePath, destPath)
+        //} else {
           fs.symlinkSync(basePath + pathSep + entryRelativePath, destPath);
-        }
+        //}
       }
     }
   }
