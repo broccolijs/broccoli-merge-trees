@@ -17,7 +17,7 @@
   "dependencies": {
     "promise-map-series": "^0.2.0",
     "broccoli-writer": "^0.1.1",
-    "broccoli-kitchen-sink-helpers": "~0.2.2"
+    "broccoli-kitchen-sink-helpers": "~0.2.3"
   },
   "devDependencies": {
     "tap": "^0.4.8",

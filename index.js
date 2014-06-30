@@ -30,12 +30,11 @@ TreeMerger.prototype.processDirectory = function(baseDir, relativePath) {
   }
 
   var entries  = fs.readdirSync(baseDir +  pathSep + relativePath).sort()
-  var basePath = this.fullyQualifiedPath(baseDir)
 
   for (var i = 0; i < entries.length; i++) {
     var entryRelativePath      = relativePath + entries[i];
     var lowerEntryRelativePath = entryRelativePath.toLowerCase()
-    var sourcePath             = basePath + pathSep + entryRelativePath;
+    var sourcePath             = baseDir + pathSep + entryRelativePath;
     var destPath               = this.destDir + pathSep + entryRelativePath;
     var stats                  = fs.statSync(sourcePath)
 
@@ -53,7 +52,7 @@ TreeMerger.prototype.processDirectory = function(baseDir, relativePath) {
           fs.mkdirSync(destPath)
           this.processDirectory(baseDir, entryRelativePath)
         } else {
-          fs.symlinkSync(sourcePath, destPath);
+          helpers.symlinkOrCopyPreserveSync(sourcePath, destPath);
           this.linkedDirectories[lowerEntryRelativePath] = baseDir;
         }
       } else {
@@ -90,7 +89,7 @@ TreeMerger.prototype.processDirectory = function(baseDir, relativePath) {
         if (isWindows) {
           helpers.copyPreserveSync(sourcePath, destPath)
         } else {
-          fs.symlinkSync(sourcePath, destPath);
+          helpers.symlinkOrCopyPreserveSync(sourcePath, destPath);
         }
       }
     }
@@ -117,19 +116,3 @@ TreeMerger.prototype.throwFileAndDirectoryCollision = function (relativePath, fi
                   '" exists as a file in ' + fileTreePath +
                   ' but as a directory in ' + directoryTreePath)
 }
-
-TreeMerger.prototype.fullyQualifiedPath = function fullyQualifiedPath(path) {
-  var qualifed;
-
-  if (isWindows) {
-    qualifed = path[1] === ':';
-  } else {
-    qualifed = path[0] === pathSep;
-  }
-
-  if (qualifed) {
-    return path;
-  } else {
-    return this.rootPath + pathSep + path;
-  }
-};
