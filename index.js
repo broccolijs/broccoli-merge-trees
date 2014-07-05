@@ -3,7 +3,7 @@ var Writer = require('broccoli-writer')
 var mapSeries = require('promise-map-series')
 var helpers = require('broccoli-kitchen-sink-helpers')
 
-var isWindows = /^win/.test(process.platform)
+var isWindows = process.platform === 'win32'
 var pathSep   = require('path').sep
 
 module.exports = TreeMerger
