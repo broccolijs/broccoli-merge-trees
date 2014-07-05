@@ -16,7 +16,6 @@ function TreeMerger (inputTrees, options) {
   }
   this.inputTrees = inputTrees
   this.options    = options || {}
-  this.rootPath   = this.options.rootPath || process.cwd();
 }
 
 TreeMerger.prototype.processDirectory = function(baseDir, relativePath) {
@@ -92,7 +91,6 @@ TreeMerger.prototype.processDirectory = function(baseDir, relativePath) {
       } else {
         this.files[lowerEntryRelativePath] = baseDir
 
-        // if this is a relative path, append the rootPath (which defaults to process.cwd)
         if (isWindows) {
           helpers.copyPreserveSync(sourcePath, destPath)
         } else {
