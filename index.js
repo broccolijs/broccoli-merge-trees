@@ -68,7 +68,7 @@ TreeMerger.prototype.processDirectory = function(baseDir, relativePath) {
         this.processDirectory(baseDir, entryRelativePath)
       }
     } else {
-      directoryTreePath = this.directories[entryRelativePath]
+      directoryTreePath = this.directories[lowerEntryRelativePath]
       if (directoryTreePath != null) {
         this.throwFileAndDirectoryCollision(entryRelativePath, baseDir, directoryTreePath)
       }
