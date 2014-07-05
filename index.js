@@ -81,6 +81,9 @@ TreeMerger.prototype.processDirectory = function(baseDir, relativePath) {
                           'pass option { overwrite: true } to mergeTrees in order ' +
                           'to have the latter file win')
         }
+        // Overwrite by doing nothing. We are going backwards through the
+        // source trees, so by not copying the earlier file here, we let the
+        // later file (which has already been copied) "overwrite" it.
       } else {
         this.files[lowerEntryRelativePath] = baseDir
 
