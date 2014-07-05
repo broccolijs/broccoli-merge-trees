@@ -35,14 +35,7 @@ TreeMerger.prototype.processDirectory = function(baseDir, relativePath) {
     var lowerEntryRelativePath = entryRelativePath.toLowerCase()
     var sourcePath             = baseDir + pathSep + entryRelativePath
     var destPath               = this.destDir + pathSep + entryRelativePath
-    var stats                  = fs.lstatSync(sourcePath)
-
-    // if this is a symbolic link, grab its contents, and re-stats
-    // this allows us to avoid massively deep symlinks
-    if (stats.isSymbolicLink()) {
-      sourcePath = fs.readlinkSync(sourcePath)
-      stats      = fs.lstatSync(sourcePath)
-    }
+    var stats                  = fs.statSync(sourcePath)
 
     if (stats.isDirectory()) {
       fileTreePath = this.files[lowerEntryRelativePath]
