@@ -3,8 +3,8 @@ var Writer = require('broccoli-writer')
 var mapSeries = require('promise-map-series')
 var helpers = require('broccoli-kitchen-sink-helpers')
 
-var isWindows = /^win/.test(process.platform);
-var pathSep   = require('path').sep;
+var isWindows = /^win/.test(process.platform)
+var pathSep   = require('path').sep
 
 module.exports = TreeMerger
 TreeMerger.prototype = Object.create(Writer.prototype)
@@ -19,7 +19,7 @@ function TreeMerger (inputTrees, options) {
 }
 
 TreeMerger.prototype.processDirectory = function(baseDir, relativePath) {
-  var directoryTreePath, fileTreePath;
+  var directoryTreePath, fileTreePath
   // Inside this function, prefer string concatenation to the slower path.join
   // https://github.com/joyent/node/pull/6929
   if (relativePath == null) {
@@ -31,17 +31,17 @@ TreeMerger.prototype.processDirectory = function(baseDir, relativePath) {
   var entries  = fs.readdirSync(baseDir +  pathSep + relativePath).sort()
 
   for (var i = 0; i < entries.length; i++) {
-    var entryRelativePath      = relativePath + entries[i];
+    var entryRelativePath      = relativePath + entries[i]
     var lowerEntryRelativePath = entryRelativePath.toLowerCase()
-    var sourcePath             = baseDir + pathSep + entryRelativePath;
-    var destPath               = this.destDir + pathSep + entryRelativePath;
+    var sourcePath             = baseDir + pathSep + entryRelativePath
+    var destPath               = this.destDir + pathSep + entryRelativePath
     var stats                  = fs.lstatSync(sourcePath)
 
     // if this is a symbolic link, grab its contents, and re-stats
     // this allows us to avoid massively deep symlinks
     if (stats.isSymbolicLink()) {
-      sourcePath = fs.readlinkSync(sourcePath);
-      stats      = fs.lstatSync(sourcePath);
+      sourcePath = fs.readlinkSync(sourcePath)
+      stats      = fs.lstatSync(sourcePath)
     }
 
     if (stats.isDirectory()) {
@@ -58,15 +58,15 @@ TreeMerger.prototype.processDirectory = function(baseDir, relativePath) {
           fs.mkdirSync(destPath)
           this.processDirectory(baseDir, entryRelativePath)
         } else {
-          helpers.symlinkOrCopyPreserveSync(sourcePath, destPath);
-          this.linkedDirectories[lowerEntryRelativePath] = baseDir;
+          helpers.symlinkOrCopyPreserveSync(sourcePath, destPath)
+          this.linkedDirectories[lowerEntryRelativePath] = baseDir
         }
       } else {
         if (this.linkedDirectories[lowerEntryRelativePath]) {
           // a prior symlinked directory was found
-          fs.unlinkSync(destPath);
-          fs.mkdirSync(destPath);
-          delete this.linkedDirectories[lowerEntryRelativePath];
+          fs.unlinkSync(destPath)
+          fs.mkdirSync(destPath)
+          delete this.linkedDirectories[lowerEntryRelativePath]
 
           // re-process the original tree's version of this entryRelativePath
           this.processDirectory(directoryTreePath, entryRelativePath)
@@ -94,7 +94,7 @@ TreeMerger.prototype.processDirectory = function(baseDir, relativePath) {
         if (isWindows) {
           helpers.copyPreserveSync(sourcePath, destPath)
         } else {
-          helpers.symlinkOrCopyPreserveSync(sourcePath, destPath);
+          helpers.symlinkOrCopyPreserveSync(sourcePath, destPath)
         }
       }
     }
