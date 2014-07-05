@@ -87,11 +87,7 @@ TreeMerger.prototype.processDirectory = function(baseDir, relativePath) {
       } else {
         this.files[lowerEntryRelativePath] = baseDir
 
-        if (isWindows) {
-          helpers.copyPreserveSync(sourcePath, destPath)
-        } else {
-          helpers.symlinkOrCopyPreserveSync(sourcePath, destPath)
-        }
+        helpers.symlinkOrCopyPreserveSync(sourcePath, destPath)
       }
     }
   }
