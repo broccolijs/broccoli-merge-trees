@@ -19,7 +19,7 @@ function TreeMerger (inputTrees, options) {
 }
 
 TreeMerger.prototype.processDirectory = function(baseDir, relativePath) {
-  var directoryTreePath, fileTreePath
+  var directoryTreePath, fileTreePath, linkedDirectory
   // Inside this function, prefer string concatenation to the slower path.join
   // https://github.com/joyent/node/pull/6929
   if (relativePath == null) {
@@ -52,17 +52,22 @@ TreeMerger.prototype.processDirectory = function(baseDir, relativePath) {
           this.processDirectory(baseDir, entryRelativePath)
         } else {
           helpers.symlinkOrCopyPreserveSync(sourcePath, destPath)
-          this.linkedDirectories[lowerEntryRelativePath] = baseDir
+          this.linkedDirectories[lowerEntryRelativePath] = {
+            baseDir: baseDir,
+            destPath: destPath,
+            entryRelativePath: entryRelativePath
+          }
         }
       } else {
-        if (this.linkedDirectories[lowerEntryRelativePath]) {
+        linkedDirectory = this.linkedDirectory[lowerEntryRelativePath]
+        if (linkedDirectory) {
           // a prior symlinked directory was found
-          fs.unlinkSync(destPath)
-          fs.mkdirSync(destPath)
+          fs.unlinkSync(linkedDirectory.destPath)
+          fs.mkdirSync(linkedDirectory.destPath)
           delete this.linkedDirectories[lowerEntryRelativePath]
 
           // re-process the original tree's version of this entryRelativePath
-          this.processDirectory(directoryTreePath, entryRelativePath)
+          this.processDirectory(directoryTreePath, linkedDirectory.entryRelativePath)
         }
 
         this.processDirectory(baseDir, entryRelativePath)
