@@ -1,10 +1,10 @@
 var fs = require('fs')
+var path = require('path')
 var Writer = require('broccoli-writer')
 var mapSeries = require('promise-map-series')
 var helpers = require('broccoli-kitchen-sink-helpers')
 
 var isWindows = process.platform === 'win32'
-var pathSep   = require('path').sep
 
 module.exports = TreeMerger
 TreeMerger.prototype = Object.create(Writer.prototype)
@@ -18,103 +18,147 @@ function TreeMerger (inputTrees, options) {
   this.options    = options || {}
 }
 
-TreeMerger.prototype.processDirectory = function(baseDir, relativePath) {
-  var directoryTreePath, fileTreePath, linkedDirectory
-  // Inside this function, prefer string concatenation to the slower path.join
-  // https://github.com/joyent/node/pull/6929
-  if (relativePath == null) {
-    relativePath = ''
-  } else if (relativePath.slice(-1) !== pathSep) {
-    relativePath += pathSep
-  }
-
-  var entries  = fs.readdirSync(baseDir +  pathSep + relativePath).sort()
-
-  for (var i = 0; i < entries.length; i++) {
-    var entryRelativePath      = relativePath + entries[i]
-    var lowerEntryRelativePath = entryRelativePath.toLowerCase()
-    var sourcePath             = baseDir + pathSep + entryRelativePath
-    var destPath               = this.destDir + pathSep + entryRelativePath
-    var stats                  = fs.statSync(sourcePath)
-
-    if (stats.isDirectory()) {
-      fileTreePath = this.files[lowerEntryRelativePath]
-      if (fileTreePath != null) {
-        this.throwFileAndDirectoryCollision(entryRelativePath, fileTreePath, baseDir)
-      }
-      directoryTreePath = this.directories[lowerEntryRelativePath]
-      if (directoryTreePath == null) {
-        this.directories[lowerEntryRelativePath] = baseDir
-
-        // on windows we still need to traverse subdirs (for copying):
-        if (isWindows) {
-          fs.mkdirSync(destPath)
-          this.processDirectory(baseDir, entryRelativePath)
-        } else {
-          helpers.symlinkOrCopyPreserveSync(sourcePath, destPath)
-          this.linkedDirectories[lowerEntryRelativePath] = {
-            baseDir: baseDir,
-            destPath: destPath,
-            entryRelativePath: entryRelativePath
-          }
-        }
-      } else {
-        linkedDirectory = this.linkedDirectory[lowerEntryRelativePath]
-        if (linkedDirectory) {
-          // a prior symlinked directory was found
-          fs.unlinkSync(linkedDirectory.destPath)
-          fs.mkdirSync(linkedDirectory.destPath)
-          delete this.linkedDirectories[lowerEntryRelativePath]
-
-          // re-process the original tree's version of this entryRelativePath
-          this.processDirectory(directoryTreePath, linkedDirectory.entryRelativePath)
-        }
-
-        this.processDirectory(baseDir, entryRelativePath)
-      }
-    } else {
-      directoryTreePath = this.directories[lowerEntryRelativePath]
-      if (directoryTreePath != null) {
-        this.throwFileAndDirectoryCollision(entryRelativePath, baseDir, directoryTreePath)
-      }
-      fileTreePath = this.files[lowerEntryRelativePath]
-      if (fileTreePath != null) {
-        if (!this.options.overwrite) {
-          throw new Error('Merge error: ' +
-                          'file "' + entryRelativePath + '" exists in ' +
-                          baseDir + ' and ' + fileTreePath + ' - ' +
-                          'pass option { overwrite: true } to mergeTrees in order ' +
-                          'to have the latter file win')
-        }
-        // Overwrite by doing nothing. We are going backwards through the
-        // source trees, so by not copying the earlier file here, we let the
-        // later file (which has already been copied) "overwrite" it.
-      } else {
-        this.files[lowerEntryRelativePath] = baseDir
-
-        helpers.symlinkOrCopyPreserveSync(sourcePath, destPath)
-      }
-    }
-  }
-}
-
 TreeMerger.prototype.write = function (readTree, destDir) {
-  this.destDir = destDir
-  this.files = {}
-  this.linkedDirectories = {}
-  this.directories = {}
+  var self = this
 
   return mapSeries(this.inputTrees, readTree).then(function (treePaths) {
-    this.treePaths = treePaths
+    var allIndices = treePaths.map(function (treePath, i) { return i })
+    mergeRelativePath('', allIndices)
 
-    for (var i = treePaths.length - 1; i >= 0; i--) {
-      this.processDirectory(treePaths[i])
+    function mergeRelativePath (baseDir, possibleIndices) { // baseDir has a trailing path.sep
+      var i, j, fileName, fullPath
+
+      // Array of readdir arrays
+      var names = treePaths.map(function (treePath, i) {
+        if (possibleIndices.indexOf(i) !== -1) {
+          return fs.readdirSync(treePath + path.sep + baseDir).sort()
+        } else {
+          return []
+        }
+      })
+
+      // Guard against conflicting capitalizations
+      var lowerCaseNames = {}
+      for (i = 0; i < treePaths.length; i++) {
+        for (j = 0; j < names[i].length; j++) {
+          fileName = names[i][j]
+          var lowerCaseName = fileName.toLowerCase()
+          if (lowerCaseNames[lowerCaseName] == null) {
+            lowerCaseNames[lowerCaseName] = {
+              index: i,
+              originalName: fileName
+            }
+          } else {
+            var originalName = lowerCaseNames[lowerCaseName].originalName
+            var originalIndex = lowerCaseNames[lowerCaseName].index
+            if (originalName !== fileName) {
+              throw new Error('Merge error: conflicting capitalizations:\n'
+                + baseDir + originalName + ' in ' + treePaths[originalIndex] + '\n'
+                + baseDir + fileName + ' in ' + treePaths[i] + '\n'
+                + 'Remove one of the files and re-add it with matching capitalization.\n'
+                + 'We are strict about this to avoid divergent behavior '
+                + 'between (case-insensitive) Mac/Windows and (case-sensitive) Linux.'
+              )
+            }
+          }
+        }
+      }
+      // From here on out, no files and directories exist with conflicting
+      // capitalizations, which means we can use `===` without .toLowerCase
+      // normalization.
+
+      // Accumulate fileInfo hashes of { isDirectory, indices }.
+      // Also guard against conflicting file types and overwriting.
+      var fileInfo = {}
+      for (i = 0; i < treePaths.length; i++) {
+        for (j = 0; j < names[i].length; j++) {
+          fileName = names[i][j]
+          fullPath = treePaths[i] + path.sep + baseDir + fileName
+          var isDirectory = checkIsDirectory(fullPath)
+          if (fileInfo[fileName] == null) {
+            fileInfo[fileName] = {
+              isDirectory: isDirectory,
+              indices: [i] // indices into treePaths in which this file exists
+            }
+          } else {
+            var originallyDirectory = fileInfo[fileName].isDirectory
+
+            // Guard against conflicting file types
+            if (originallyDirectory !== isDirectory) {
+              throw new Error('Merge error: conflicting file type for ' + baseDir + fileName
+                + ' (is a ' + (originallyDirectory ? 'directory' : 'file')
+                  + ' in ' + treePaths[fileInfo[fileName].indices[0]]
+                + ' but a ' + (isDirectory ? 'directory' : 'file')
+                  + ' in ' + treePaths[i] + ')\n'
+                + 'Remove or rename either of those.'
+              )
+            }
+
+            // Guard against overwriting when disabled
+            if (!isDirectory && !self.options.overwrite) {
+              throw new Error('Merge error: '
+                + 'file ' + baseDir + fileName + ' exists in '
+                + treePaths[fileInfo[fileName].indices[0]] + ' and ' + treePaths[i] + '\n'
+                + 'Pass option { overwrite: true } to mergeTrees in order '
+                + 'to have the latter file win.'
+              )
+            }
+
+            fileInfo[fileName].indices.push(i)
+          }
+        }
+      }
+
+      // Done guarding against all error conditions. Actually merge now.
+      for (i = 0; i < treePaths.length; i++) {
+        for (j = 0; j < names[i].length; j++) {
+          fileName = names[i][j]
+          fullPath = treePaths[i] + path.sep + baseDir + fileName
+          var destPath = destDir + path.sep + baseDir + fileName
+          var infoHash = fileInfo[fileName]
+
+          if (infoHash.isDirectory) {
+            if (isWindows || infoHash.indices.length > 1) {
+              // Copy/merge subdirectory
+              if (infoHash.indices[0] === i) { // avoid duplicate recursion
+                fs.mkdirSync(destPath)
+                mergeRelativePath(baseDir + fileName + path.sep, infoHash.indices)
+              }
+            } else {
+              // Symlink entire subdirectory
+              if (fs.lstatSync(fullPath).isSymbolicLink()) {
+                // When we encounter symlinks, follow them. This prevents indirection
+                // from growing out of control. Note: At the moment `realpath` on Node
+                // is 70x slower than native: https://github.com/joyent/node/issues/7902
+                fullPath = fs.realpathSync(fullPath)
+              } else if (fullPath[0] !== path.sep) {
+                fullPath = process.cwd() + path.sep + fullPath
+              }
+              fs.symlinkSync(fullPath, destPath)
+            }
+          } else { // isFile
+            if (infoHash.indices[infoHash.indices.length-1] === i) {
+              helpers.symlinkOrCopyPreserveSync(fullPath, destPath)
+            } else {
+              // This file exists in a later tree. Do nothing here to have the
+              // later file win out and thus "overwrite" the earlier file.
+            }
+          }
+        }
+      }
     }
-  }.bind(this))
+  })
 }
 
-TreeMerger.prototype.throwFileAndDirectoryCollision = function (relativePath, fileTreePath, directoryTreePath) {
-  throw new Error('Merge error: "' + relativePath +
-                  '" exists as a file in ' + fileTreePath +
-                  ' but as a directory in ' + directoryTreePath)
+// True if directory, false if file, exception otherwise
+function checkIsDirectory (fullPath) {
+  // console.error('stating ' + fullPath)
+  var stat = fs.statSync(fullPath) // may throw ENOENT on broken symlink
+  if (stat.isDirectory()) {
+    return true
+  } else if (stat.isFile()) {
+    return false
+  } else {
+    throw new Error('Unexpected file type for ' + fullPath)
+  }
 }
