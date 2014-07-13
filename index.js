@@ -57,7 +57,7 @@ TreeMerger.prototype.write = function (readTree, destDir) {
                 + baseDir + fileName + ' in ' + treePaths[i] + '\n'
                 + 'Remove one of the files and re-add it with matching capitalization.\n'
                 + 'We are strict about this to avoid divergent behavior '
-                + 'between (case-insensitive) Mac/Windows and (case-sensitive) Linux.'
+                + 'between case-insensitive Mac/Windows and case-sensitive Linux.'
               )
             }
           }
@@ -85,11 +85,11 @@ TreeMerger.prototype.write = function (readTree, destDir) {
 
             // Guard against conflicting file types
             if (originallyDirectory !== isDirectory) {
-              throw new Error('Merge error: conflicting file type for ' + baseDir + fileName
-                + ' (is a ' + (originallyDirectory ? 'directory' : 'file')
+              throw new Error('Merge error: conflicting file types: ' + baseDir + fileName
+                + ' is a ' + (originallyDirectory ? 'directory' : 'file')
                   + ' in ' + treePaths[fileInfo[fileName].indices[0]]
                 + ' but a ' + (isDirectory ? 'directory' : 'file')
-                  + ' in ' + treePaths[i] + ')\n'
+                  + ' in ' + treePaths[i] + '\n'
                 + 'Remove or rename either of those.'
               )
             }
@@ -152,7 +152,6 @@ TreeMerger.prototype.write = function (readTree, destDir) {
 
 // True if directory, false if file, exception otherwise
 function checkIsDirectory (fullPath) {
-  // console.error('stating ' + fullPath)
   var stat = fs.statSync(fullPath) // may throw ENOENT on broken symlink
   if (stat.isDirectory()) {
     return true

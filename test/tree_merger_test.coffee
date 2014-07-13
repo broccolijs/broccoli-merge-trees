@@ -4,9 +4,10 @@ mergeTrees = require('../')
 
 makeFixtureTree = testHelpers.makeFixtureTree
 treeToFixture = testHelpers.treeToFixture
+dereferenceSymlinks = testHelpers.dereferenceSymlinks
 
 mergeFixtures = (inputFixtures, options) ->
-  treeToFixture mergeTrees(inputFixtures.map(makeFixtureTree), options)
+  treeToFixture dereferenceSymlinks(mergeTrees(inputFixtures.map(makeFixtureTree), options))
 
 test 'mergeTrees', (t) ->
   test 'files and symlinks', (t) ->
@@ -19,7 +20,7 @@ test 'mergeTrees', (t) ->
     ]
     .then (out) -> t.deepEqual out,
       foo: '1'
-      bar: ['foo']
+      bar: '1'
       baz: '2'
 
   test 'refuses to overwrite files by default', (t) ->
@@ -32,18 +33,7 @@ test 'mergeTrees', (t) ->
       bar: '2b'
     ]
     .catch (err) ->
-      t.similar err.message, /file "bar" exists in .* and .* overwrite: true/
-  
-  test 'file names should be treated case insensitive', (t) ->
-    t.plan 1
- 
-    mergeFixtures [
-      foo: '1'
-    ,
-      Foo: '2'
-    ]
-    .catch (err) ->
-      t.similar err.message, /file "foo" exists in .* and .* overwrite: true/
+      t.similar err.message, /Merge error: file bar exists in .* and [^]* overwrite: true/
 
   test 'accepts { overwrite: true }', (t) ->
     t.plan 1
@@ -55,11 +45,26 @@ test 'mergeTrees', (t) ->
       foo: '1b'
       bar: ['foo']
       baz: '3'
+    ,
+      foo: '1c'
     ], overwrite: true
     .then (out) -> t.deepEqual out,
-      foo: '1b'
-      bar: ['foo']
+      foo: '1c'
+      bar: '1b'
       baz: '3'
+
+  test 'refuses to honor conflicting capitalizations', (t) ->
+    t.plan 4
+
+    for overwrite in [false, true] # non-essential: fails with overwrite: true and false
+      for content in ['1', {}] # file or directory
+        mergeFixtures [
+          FOO: content
+        ,
+          Foo: content
+        ], overwrite: overwrite
+        .catch (err) ->
+          t.similar err.message, /Merge error: conflicting capitalizations:\nFOO in .*\nFoo in .*\nRemove/
 
   test 'directories', (t) ->
     t.plan 1
@@ -67,9 +72,10 @@ test 'mergeTrees', (t) ->
       subdir:
         foo: '1'
     ,
+      subdir2: {}
+    ,
       subdir:
         bar: '2'
-      subdir2: {}
     ]
     .then (out) -> t.deepEqual out,
       subdir:
@@ -77,23 +83,23 @@ test 'mergeTrees', (t) ->
         bar: '2'
       subdir2: {}
 
-  test 'directory collision with file or symlink', (t) ->
-    t.plan 8
-    assertError = (err) ->
-      t.similar err.message, /"foo" exists as a file in .* but as a directory in .*/
-    for overwrite in [false, true] # fails with overwrite: true and false
-      for file in ['content', ['otherfile']] # fails with regular file and symlink
-        mergeFixtures [
-          foo: {}
-        ,
-          foo: file
-        ], overwrite: overwrite
-        .catch assertError
-        mergeFixtures [
-          foo: file
-        ,
-          foo: {}
-        ], overwrite: overwrite
-        .catch assertError
+  test 'directory collision with file', (t) ->
+    t.plan 4
+    for overwrite in [false, true] # non-essential: fails with overwrite: true and false
+      mergeFixtures [
+        foo: {}
+      ,
+        foo: '1'
+      ], overwrite: overwrite
+      .catch (err) =>
+        t.similar err.message, /Merge error: conflicting file types: foo is a directory in .* but a file in .*/
+
+      mergeFixtures [
+        foo: '1'
+      ,
+        foo: {}
+      ], overwrite: overwrite
+      .catch (err) =>
+        t.similar err.message, /Merge error: conflicting file types: foo is a file in .* but a directory in .*/
 
   t.end()

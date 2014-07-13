@@ -20,11 +20,12 @@
     "broccoli-kitchen-sink-helpers": "~0.2.3"
   },
   "devDependencies": {
-    "tap": "^0.4.8",
-    "rsvp": "^3.0.6",
+    "coffee-script": "~1.7.1",
     "fixturify": "^0.1.1",
     "jshint": "~2.5.0",
-    "coffee-script": "~1.7.1"
+    "ncp": "^0.6.0",
+    "rsvp": "^3.0.6",
+    "tap": "^0.4.8"
   },
   "scripts": {
     "test": "jshint *.js test/*.js && tap --stderr --timeout 2 ./test/*_test.coffee"
