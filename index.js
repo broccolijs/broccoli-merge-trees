@@ -1,8 +1,8 @@
 var fs = require('fs')
 var path = require('path')
 var Writer = require('broccoli-writer')
-var mapSeries = require('promise-map-series')
 var helpers = require('broccoli-kitchen-sink-helpers')
+var mapSeries = require('promise-map-series')
 
 var isWindows = process.platform === 'win32'
 
@@ -15,22 +15,22 @@ function TreeMerger (inputTrees, options) {
     throw new Error('Expected array, got ' + inputTrees)
   }
   this.inputTrees = inputTrees
-  this.options    = options || {}
+  this.options = options || {}
 }
 
 TreeMerger.prototype.write = function (readTree, destDir) {
   var self = this
 
   return mapSeries(this.inputTrees, readTree).then(function (treePaths) {
-    var allIndices = treePaths.map(function (treePath, i) { return i })
-    mergeRelativePath('', allIndices)
+    mergeRelativePath('')
 
-    function mergeRelativePath (baseDir, possibleIndices) { // baseDir has a trailing path.sep
+    function mergeRelativePath (baseDir, possibleIndices) {
+      // baseDir has a trailing path.sep if non-empty
       var i, j, fileName, fullPath
 
       // Array of readdir arrays
       var names = treePaths.map(function (treePath, i) {
-        if (possibleIndices.indexOf(i) !== -1) {
+        if (possibleIndices == null || possibleIndices.indexOf(i) !== -1) {
           return fs.readdirSync(treePath + path.sep + baseDir).sort()
         } else {
           return []
@@ -49,8 +49,8 @@ TreeMerger.prototype.write = function (readTree, destDir) {
               originalName: fileName
             }
           } else {
-            var originalName = lowerCaseNames[lowerCaseName].originalName
             var originalIndex = lowerCaseNames[lowerCaseName].index
+            var originalName = lowerCaseNames[lowerCaseName].originalName
             if (originalName !== fileName) {
               throw new Error('Merge error: conflicting capitalizations:\n'
                 + baseDir + originalName + ' in ' + treePaths[originalIndex] + '\n'
@@ -81,9 +81,10 @@ TreeMerger.prototype.write = function (readTree, destDir) {
               indices: [i] // indices into treePaths in which this file exists
             }
           } else {
-            var originallyDirectory = fileInfo[fileName].isDirectory
+            fileInfo[fileName].indices.push(i)
 
             // Guard against conflicting file types
+            var originallyDirectory = fileInfo[fileName].isDirectory
             if (originallyDirectory !== isDirectory) {
               throw new Error('Merge error: conflicting file types: ' + baseDir + fileName
                 + ' is a ' + (originallyDirectory ? 'directory' : 'file')
@@ -103,8 +104,6 @@ TreeMerger.prototype.write = function (readTree, destDir) {
                 + 'to have the latter file win.'
               )
             }
-
-            fileInfo[fileName].indices.push(i)
           }
         }
       }
