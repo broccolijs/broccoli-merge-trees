@@ -1,5 +1,7 @@
 var Writer = require('broccoli-writer')
+var RSVP = require('rsvp')
 var Promise = require('rsvp').Promise
+var ncp = require('ncp')
 var fixturify = require('fixturify')
 
 // Notes:
@@ -58,10 +60,28 @@ exports.makeFixtureTree = FixtureTree
 FixtureTree.prototype = Object.create(Writer.prototype)
 FixtureTree.prototype.constructor = FixtureTree
 function FixtureTree (fixtureObject) {
-  if (!(this instanceof FixtureTree)) return new FixtureTree(fixtureObject);
+  if (!(this instanceof FixtureTree)) return new FixtureTree(fixtureObject)
   this.fixtureObject = fixtureObject
 }
 
 FixtureTree.prototype.write = function (readTree, destDir) {
   fixturify.writeSync(destDir, this.fixtureObject)
+}
+
+
+exports.dereferenceSymlinks = SymlinkDereferencer
+SymlinkDereferencer.prototype = Object.create(Writer.prototype)
+SymlinkDereferencer.prototype.constructor = SymlinkDereferencer
+function SymlinkDereferencer (inputTree) {
+  if (!(this instanceof SymlinkDereferencer)) return new SymlinkDereferencer(inputTree)
+  this.inputTree = inputTree
+}
+
+SymlinkDereferencer.prototype.write = function (readTree, destDir) {
+  return readTree(this.inputTree)
+    .then(function (srcDir) {
+      return RSVP.denodeify(ncp)(srcDir, destDir, {
+        dereference: true
+      })
+    })
 }
