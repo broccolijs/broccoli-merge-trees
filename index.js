@@ -1,7 +1,7 @@
 var fs = require('fs')
 var path = require('path')
 var Writer = require('broccoli-writer')
-var helpers = require('broccoli-kitchen-sink-helpers')
+var symlinkOrCopySync = require('symlink-or-copy').sync
 var mapSeries = require('promise-map-series')
 
 var isWindows = process.platform === 'win32'
@@ -137,7 +137,7 @@ TreeMerger.prototype.write = function (readTree, destDir) {
             }
           } else { // isFile
             if (infoHash.indices[infoHash.indices.length-1] === i) {
-              helpers.symlinkOrCopyPreserveSync(fullPath, destPath)
+              symlinkOrCopySync(fullPath, destPath)
             } else {
               // This file exists in a later tree. Do nothing here to have the
               // later file win out and thus "overwrite" the earlier file.
