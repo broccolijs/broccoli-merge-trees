@@ -1,5 +1,7 @@
 # master
 
+# 0.2.0
+
 * Use symlinks as a performance optimization (see
   [symlink-change.md](https://github.com/broccolijs/broccoli/blob/master/docs/symlink-change.md))
 
