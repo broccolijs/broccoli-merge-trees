@@ -1,5 +1,8 @@
 # master
 
+* Use symlinks as a performance optimization (see
+  [symlink-change.md](https://github.com/broccolijs/broccoli/blob/master/docs/symlink-change.md))
+
 # 0.1.4
 
 * Make file overwriting case insensitive (on all platforms)
