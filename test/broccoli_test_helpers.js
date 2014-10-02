@@ -1,6 +1,5 @@
 var Writer = require('broccoli-writer')
 var RSVP = require('rsvp')
-var Promise = require('rsvp').Promise
 var ncp = require('ncp')
 var fixturify = require('fixturify')
 
@@ -19,7 +18,7 @@ MinimalBroccoliBuilder.prototype.build = function () {
   var trees = [], dirs = []
 
   function readTree (tree) {
-    return Promise.resolve().then(function () {
+    return RSVP.resolve().then(function () {
       // Plain directory path?
       if (typeof tree === 'string') return tree
       // Previously read?
@@ -27,7 +26,7 @@ MinimalBroccoliBuilder.prototype.build = function () {
       if (index !== -1) return dirs[index]
       // Read Broccoli tree
       if (self.treesToCleanUp.indexOf(tree) === -1) self.treesToCleanUp.push(tree)
-      return Promise.resolve(tree.read(readTree))
+      return RSVP.resolve(tree.read(readTree))
         .then(function (dir) {
           trees.push(tree)
           dirs.push(dir)
