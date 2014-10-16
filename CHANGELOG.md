@@ -1,5 +1,7 @@
 # master
 
+# 0.2.1
+
 * Use node-symlink-or-copy to enable possible future symlink support on Windows
 
 # 0.2.0
