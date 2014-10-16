@@ -1,5 +1,7 @@
 # master
 
+* Use node-symlink-or-copy to enable possible future symlink support on Windows
+
 # 0.2.0
 
 * Use symlinks as a performance optimization (see
