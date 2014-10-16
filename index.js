@@ -125,14 +125,6 @@ TreeMerger.prototype.write = function (readTree, destDir) {
               }
             } else {
               // Symlink entire subdirectory
-              if (fs.lstatSync(fullPath).isSymbolicLink()) {
-                // When we encounter symlinks, follow them. This prevents indirection
-                // from growing out of control. Note: At the moment `realpath` on Node
-                // is 70x slower than native: https://github.com/joyent/node/issues/7902
-                fullPath = fs.realpathSync(fullPath)
-              } else if (fullPath[0] !== path.sep) {
-                fullPath = process.cwd() + path.sep + fullPath
-              }
               symlinkOrCopySync(fullPath, destPath)
             }
           } else { // isFile
