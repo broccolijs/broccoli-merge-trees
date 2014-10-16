@@ -4,8 +4,6 @@ var Writer = require('broccoli-writer')
 var symlinkOrCopySync = require('symlink-or-copy').sync
 var mapSeries = require('promise-map-series')
 
-var isWindows = process.platform === 'win32'
-
 module.exports = TreeMerger
 TreeMerger.prototype = Object.create(Writer.prototype)
 TreeMerger.prototype.constructor = TreeMerger
@@ -117,7 +115,7 @@ TreeMerger.prototype.write = function (readTree, destDir) {
           var infoHash = fileInfo[fileName]
 
           if (infoHash.isDirectory) {
-            if (isWindows || infoHash.indices.length > 1) {
+            if (infoHash.indices.length > 1) {
               // Copy/merge subdirectory
               if (infoHash.indices[0] === i) { // avoid duplicate recursion
                 fs.mkdirSync(destPath)
