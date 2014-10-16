@@ -133,7 +133,7 @@ TreeMerger.prototype.write = function (readTree, destDir) {
               } else if (fullPath[0] !== path.sep) {
                 fullPath = process.cwd() + path.sep + fullPath
               }
-              fs.symlinkSync(fullPath, destPath)
+              symlinkOrCopySync(fullPath, destPath)
             }
           } else { // isFile
             if (infoHash.indices[infoHash.indices.length-1] === i) {
