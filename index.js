@@ -41,6 +41,9 @@ TreeMerger.prototype.write = function (readTree, destDir) {
         for (j = 0; j < names[i].length; j++) {
           fileName = names[i][j]
           var lowerCaseName = fileName.toLowerCase()
+          // Note: We are using .toLowerCase to approximate the case
+          // insensitivity behavior of HFS+ and NTFS. While .toLowerCase is at
+          // least Unicode aware, there are probably better-suited functions.
           if (lowerCaseNames[lowerCaseName] == null) {
             lowerCaseNames[lowerCaseName] = {
               index: i,
