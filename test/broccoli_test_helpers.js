@@ -13,6 +13,7 @@ function MinimalBroccoliBuilder (tree) {
   this.treesToCleanUp = []
 }
 
+// To do: Update me for .rebuild API
 MinimalBroccoliBuilder.prototype.build = function () {
   var self = this
   var trees = [], dirs = []
