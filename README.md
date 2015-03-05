@@ -29,6 +29,35 @@ var outputTree = mergeTrees(inputTrees, options);
   tree will contain the version of the file as it exists in the last input
   tree that contains it.
 
+### Example
+
+If this is your `Brocfile.js`:
+
+```js
+var mergeTrees = require('broccoli-merge-trees');
+
+module.exports = mergeTrees(['public', 'scripts']);
+```
+
+And your project contains these files:
+
+    public
+    ├─ index.html
+    └─ images
+       └─ logo.png
+    scripts
+    └─ app.js
+    Brocfile.js
+    …
+
+Then running `broccoli build the-output` will generate this folder:
+
+    the-output
+    ├─ app.js
+    ├─ index.html
+    └─ images
+       └─ logo.png
+
 ## Contributing
 
 Clone this repo and run the tests like so:
