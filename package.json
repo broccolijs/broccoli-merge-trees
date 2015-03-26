@@ -15,8 +15,6 @@
     "copy"
   ],
   "dependencies": {
-    "promise-map-series": "^0.2.0",
-    "broccoli-writer": "^0.1.1",
     "symlink-or-copy": "^1.0.0"
   },
   "devDependencies": {
