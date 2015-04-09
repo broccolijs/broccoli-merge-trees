@@ -41,13 +41,14 @@ module.exports = mergeTrees(['public', 'scripts']);
 
 And your project contains these files:
 
-    public
-    ├─ index.html
-    └─ images
-       └─ logo.png
-    scripts
-    └─ app.js
-    Brocfile.js
+    .
+    ├─ public
+    │  ├─ index.html
+    │  └─ images
+    │     └─ logo.png
+    ├─ scripts
+    │  └─ app.js
+    ├─ Brocfile.js
     …
 
 Then running `broccoli build the-output` will generate this folder:
