@@ -58,6 +58,8 @@ Then running `broccoli build the-output` will generate this folder:
     └─ images
        └─ logo.png
 
+The parent folders, `public` and `scripts` in this case, are not included in the output. The output tree contains only the files *within* each folder, all mixed together.
+
 ## Contributing
 
 Clone this repo and run the tests like so:
