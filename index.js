@@ -1,8 +1,12 @@
 var fs = require('fs')
 var path = require('path')
+var Writer = require('broccoli-writer')
 var symlinkOrCopySync = require('symlink-or-copy').sync
+var mapSeries = require('promise-map-series')
 
 module.exports = TreeMerger
+TreeMerger.prototype = Object.create(Writer.prototype)
+TreeMerger.prototype.constructor = TreeMerger
 function TreeMerger (inputTrees, options) {
   if (!(this instanceof TreeMerger)) return new TreeMerger(inputTrees, options)
   if (!Array.isArray(inputTrees)) {
@@ -12,9 +16,10 @@ function TreeMerger (inputTrees, options) {
   this.options = options || {}
 }
 
-TreeMerger.prototype.rebuild = function () {
+TreeMerger.prototype.write = function (readTree, destDir) {
   var self = this
 
+  return mapSeries(this.inputTrees, readTree).then(function (treePaths) {
     mergeRelativePath('')
 
     function mergeRelativePath (baseDir, possibleIndices) {
@@ -22,7 +27,7 @@ TreeMerger.prototype.rebuild = function () {
       var i, j, fileName, fullPath
 
       // Array of readdir arrays
-      var names = self.inputPaths.map(function (treePath, i) {
+      var names = treePaths.map(function (treePath, i) {
         if (possibleIndices == null || possibleIndices.indexOf(i) !== -1) {
           return fs.readdirSync(treePath + path.sep + baseDir).sort()
         } else {
@@ -32,7 +37,7 @@ TreeMerger.prototype.rebuild = function () {
 
       // Guard against conflicting capitalizations
       var lowerCaseNames = {}
-      for (i = 0; i < self.inputPaths.length; i++) {
+      for (i = 0; i < treePaths.length; i++) {
         for (j = 0; j < names[i].length; j++) {
           fileName = names[i][j]
           var lowerCaseName = fileName.toLowerCase()
@@ -49,8 +54,8 @@ TreeMerger.prototype.rebuild = function () {
             var originalName = lowerCaseNames[lowerCaseName].originalName
             if (originalName !== fileName) {
               throw new Error('Merge error: conflicting capitalizations:\n'
-                + baseDir + originalName + ' in ' + self.inputPaths[originalIndex] + '\n'
-                + baseDir + fileName + ' in ' + self.inputPaths[i] + '\n'
+                + baseDir + originalName + ' in ' + treePaths[originalIndex] + '\n'
+                + baseDir + fileName + ' in ' + treePaths[i] + '\n'
                 + 'Remove one of the files and re-add it with matching capitalization.\n'
                 + 'We are strict about this to avoid divergent behavior '
                 + 'between case-insensitive Mac/Windows and case-sensitive Linux.'
@@ -66,15 +71,15 @@ TreeMerger.prototype.rebuild = function () {
       // Accumulate fileInfo hashes of { isDirectory, indices }.
       // Also guard against conflicting file types and overwriting.
       var fileInfo = {}
-      for (i = 0; i < self.inputPaths.length; i++) {
+      for (i = 0; i < treePaths.length; i++) {
         for (j = 0; j < names[i].length; j++) {
           fileName = names[i][j]
-          fullPath = self.inputPaths[i] + path.sep + baseDir + fileName
+          fullPath = treePaths[i] + path.sep + baseDir + fileName
           var isDirectory = checkIsDirectory(fullPath)
           if (fileInfo[fileName] == null) {
             fileInfo[fileName] = {
               isDirectory: isDirectory,
-              indices: [i] // indices into self.inputPaths in which this file exists
+              indices: [i] // indices into treePaths in which this file exists
             }
           } else {
             fileInfo[fileName].indices.push(i)
@@ -84,9 +89,9 @@ TreeMerger.prototype.rebuild = function () {
             if (originallyDirectory !== isDirectory) {
               throw new Error('Merge error: conflicting file types: ' + baseDir + fileName
                 + ' is a ' + (originallyDirectory ? 'directory' : 'file')
-                  + ' in ' + self.inputPaths[fileInfo[fileName].indices[0]]
+                  + ' in ' + treePaths[fileInfo[fileName].indices[0]]
                 + ' but a ' + (isDirectory ? 'directory' : 'file')
-                  + ' in ' + self.inputPaths[i] + '\n'
+                  + ' in ' + treePaths[i] + '\n'
                 + 'Remove or rename either of those.'
               )
             }
@@ -95,7 +100,7 @@ TreeMerger.prototype.rebuild = function () {
             if (!isDirectory && !self.options.overwrite) {
               throw new Error('Merge error: '
                 + 'file ' + baseDir + fileName + ' exists in '
-                + self.inputPaths[fileInfo[fileName].indices[0]] + ' and ' + self.inputPaths[i] + '\n'
+                + treePaths[fileInfo[fileName].indices[0]] + ' and ' + treePaths[i] + '\n'
                 + 'Pass option { overwrite: true } to mergeTrees in order '
                 + 'to have the latter file win.'
               )
@@ -105,11 +110,11 @@ TreeMerger.prototype.rebuild = function () {
       }
 
       // Done guarding against all error conditions. Actually merge now.
-      for (i = 0; i < self.inputPaths.length; i++) {
+      for (i = 0; i < treePaths.length; i++) {
         for (j = 0; j < names[i].length; j++) {
           fileName = names[i][j]
-          fullPath = self.inputPaths[i] + path.sep + baseDir + fileName
-          var destPath = self.outputPath + path.sep + baseDir + fileName
+          fullPath = treePaths[i] + path.sep + baseDir + fileName
+          var destPath = destDir + path.sep + baseDir + fileName
           var infoHash = fileInfo[fileName]
 
           if (infoHash.isDirectory) {
@@ -134,6 +139,7 @@ TreeMerger.prototype.rebuild = function () {
         }
       }
     }
+  })
 }
 
 // True if directory, false if file, exception otherwise
