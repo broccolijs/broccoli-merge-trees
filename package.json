@@ -26,6 +26,6 @@
     "tap": "^0.4.8"
   },
   "scripts": {
-    "test": "jshint *.js test/*.js"
+    "test": "jshint *.js test/*.js && tap --stderr --timeout 2 ./test/*_test.coffee"
   }
 }
