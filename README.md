@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/broccolijs/broccoli-merge-trees.png?branch=master)](https://travis-ci.org/broccolijs/broccoli-merge-trees)
 
-Copy multiple trees on top of each other, resulting in a single merged tree.
+Copy multiple trees of files on top of each other, resulting in a single merged tree.
 
 ## Installation
 
@@ -13,30 +13,30 @@ npm install --save-dev broccoli-merge-trees
 ## Usage
 
 ```js
-var mergeTrees = require('broccoli-merge-trees');
+var BroccoliMergeTrees = require('broccoli-merge-trees');
 
-var outputTree = mergeTrees(inputTrees, options);
+var mergedNode = new BroccoliMergeTrees(inputNodes, options);
 ```
 
-* **`inputTrees`**: An array of trees
+* **`inputNodes`**: An array of nodes, whose contents will be merged
 
 * **`options`**: A hash of options
 
 ### Options
 
 * `overwrite`: By default, broccoli-merge-trees throws an error when a file
-  exists in multiple trees. If you pass `{ overwrite: true }`, the resulting
-  tree will contain the version of the file as it exists in the last input
-  tree that contains it.
+  exists in multiple nodes. If you pass `{ overwrite: true }`, the output
+  will contain the version of the file as it exists in the last input
+  node that contains it.
 
 ### Example
 
 If this is your `Brocfile.js`:
 
 ```js
-var mergeTrees = require('broccoli-merge-trees');
+var BroccoliMergeTrees = require('broccoli-merge-trees');
 
-module.exports = mergeTrees(['public', 'scripts']);
+module.exports = new BroccoliMergeTrees(['public', 'scripts']);
 ```
 
 And your project contains these files:
