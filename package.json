@@ -19,14 +19,9 @@
     "symlink-or-copy": "^1.0.0"
   },
   "devDependencies": {
-    "coffee-script": "~1.7.1",
-    "fixturify": "^0.1.1",
-    "jshint": "~2.5.0",
-    "ncp": "^0.6.0",
-    "rsvp": "^3.0.6",
-    "tap": "^0.4.8"
+    "jshint": "~2.5.0"
   },
   "scripts": {
-    "test": "jshint *.js test/*.js && tap --stderr --timeout 2 ./test/*_test.coffee"
+    "test": "jshint *.js"
   }
 }
