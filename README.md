@@ -29,6 +29,8 @@ var mergedNode = new BroccoliMergeTrees(inputNodes, options);
   will contain the version of the file as it exists in the last input
   node that contains it.
 
+* `annotation`: A note to help tell multiple plugin instances apart.
+
 ### Example
 
 If this is your `Brocfile.js`:
