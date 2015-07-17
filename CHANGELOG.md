@@ -1,5 +1,7 @@
 # master
 
+* Use broccoli-plugin base class, and add `annotation` option
+
 # 0.2.1
 
 * Use node-symlink-or-copy to enable possible future symlink support on Windows
