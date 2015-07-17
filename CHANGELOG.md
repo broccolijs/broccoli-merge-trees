@@ -1,5 +1,7 @@
 # master
 
+# 0.2.2
+
 * Use broccoli-plugin base class, and add `annotation` option
 
 # 0.2.1
