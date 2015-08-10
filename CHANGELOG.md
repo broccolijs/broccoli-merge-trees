@@ -1,5 +1,7 @@
 # master
 
+* Add debug logging
+
 # 0.2.2
 
 * Use broccoli-plugin base class, and add `annotation` option
