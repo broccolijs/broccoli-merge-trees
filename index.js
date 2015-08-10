@@ -2,6 +2,7 @@ var fs = require('fs')
 var path = require('path')
 var Plugin = require('broccoli-plugin')
 var symlinkOrCopySync = require('symlink-or-copy').sync
+var debug = require('debug')
 
 module.exports = BroccoliMergeTrees
 BroccoliMergeTrees.prototype = Object.create(Plugin.prototype)
@@ -15,15 +16,28 @@ function BroccoliMergeTrees(inputNodes, options) {
   Plugin.call(this, inputNodes, {
     annotation: options.annotation
   })
+
+  this._debug = debug('broccoli-merge-trees:' + (options.annotation || ''));
   this.options = options
+  this._buildCount = 0;
+}
+
+BroccoliMergeTrees.prototype.debug = function(message, args) {
+  this._debug(message, args);
 }
 
 BroccoliMergeTrees.prototype.build = function() {
   var inputPaths = this.inputPaths
   var outputPath = this.outputPath
   var overwrite = this.options.overwrite
+  this._buildCount++;
 
+  var start = new Date()
   mergeRelativePath('')
+  this.debug('build: \n %o', {
+    count: this._buildCount,
+    in: new Date() - start + 'ms'
+  })
 
   function mergeRelativePath (baseDir, possibleIndices) {
     // baseDir has a trailing path.sep if non-empty
