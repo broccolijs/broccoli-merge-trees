@@ -1,5 +1,7 @@
 # master
 
+# 0.2.3
+
 * Add debug logging
 
 # 0.2.2
