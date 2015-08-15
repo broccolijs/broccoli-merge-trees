@@ -13,7 +13,19 @@ function BroccoliMergeTrees(inputNodes, options) {
     throw new Error('Expected array, got ' + inputNodes)
   }
   options = options || {}
-  Plugin.call(this, inputNodes, {
+  var newInputNodes = []
+  for (var i = 0 ; i < inputNodes.length ; i++ ) {
+    if (inputNodes[i].constructor.name  === this.constructor.name ) {
+
+      for (var j = 0; j < inputNodes[i]._inputNodes.length; j++) {
+        newInputNodes.push(inputNodes[i]._inputNodes[j]);
+      }
+    }
+    else {
+      newInputNodes.push(inputNodes[i]);
+    }
+  }
+  Plugin.call(this, newInputNodes, {
     annotation: options.annotation
   })
 
