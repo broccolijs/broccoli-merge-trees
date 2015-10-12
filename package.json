@@ -5,6 +5,10 @@
   "author": "Jo Liss <joliss42@gmail.com>",
   "main": "index.js",
   "license": "MIT",
+  "scripts": {
+    "test": "mocha test",
+    "test:debug": "mocha debug test"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/broccolijs/broccoli-merge-trees"
@@ -20,9 +24,9 @@
     "symlink-or-copy": "^1.0.0"
   },
   "devDependencies": {
-    "jshint": "~2.5.0"
-  },
-  "scripts": {
-    "test": "jshint *.js"
+    "chai": "^3.3.0",
+    "jshint": "~2.5.0",
+    "mocha": "^2.3.3",
+    "mocha-jshint": "^2.2.3"
   }
 }

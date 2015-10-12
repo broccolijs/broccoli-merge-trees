@@ -12,8 +12,13 @@ function BroccoliMergeTrees(inputNodes, options) {
   options = options || {}
   var name = 'broccoli-merge-trees:' + (options.annotation || '')
   if (!Array.isArray(inputNodes)) {
-    throw new TypeError(name + ': Expected array, got: [' + inputNodes +']')
+    throw new TypeError(name + ' Expected array, got: [' + inputNodes +']')
   }
+
+  if (!containsPossibleInputTrees(inputNodes)) {
+    throw new TypeError(name + ' requires inputNodes to be all trees, but got: [' + inputNodes + ']');
+  }
+
   Plugin.call(this, inputNodes, {
     annotation: options.annotation
   })
@@ -21,6 +26,14 @@ function BroccoliMergeTrees(inputNodes, options) {
   this._debug = debug(name);
   this.options = options
   this._buildCount = 0;
+}
+
+function containsPossibleInputTrees(trees) {
+  return trees.filter(function(tree) {
+    var type = typeof tree;
+    return type === 'string' ||
+      (tree !== null && type === 'object');
+  }).length === trees.length;
 }
 
 BroccoliMergeTrees.prototype.debug = function(message, args) {
