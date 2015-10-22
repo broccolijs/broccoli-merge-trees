@@ -20,9 +20,13 @@
     "symlink-or-copy": "^1.0.0"
   },
   "devDependencies": {
-    "jshint": "~2.5.0"
+    "broccoli-fixture": "^0.1.0",
+    "chai": "^3.4.0",
+    "chai-as-promised": "^5.1.0",
+    "mocha": "^2.3.3",
+    "mocha-jshint": "^2.2.5"
   },
   "scripts": {
-    "test": "jshint *.js"
+    "test": "mocha"
   }
 }

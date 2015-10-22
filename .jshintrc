@@ -79,6 +79,7 @@
 
     // Custom Globals
     "globals"       : {},       // additional predefined global variables
+    "mocha"         : true,
 
     // Suppress specific warnings
     "-W058": true  // Missing '()' invoking a constructor.
