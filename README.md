@@ -1,6 +1,6 @@
 # broccoli-merge-trees
 
-[![Build Status](https://travis-ci.org/broccolijs/broccoli-merge-trees.png?branch=master)](https://travis-ci.org/broccolijs/broccoli-merge-trees)
+[![Build Status](https://travis-ci.org/broccolijs/broccoli-merge-trees.svg?branch=master)](https://travis-ci.org/broccolijs/broccoli-merge-trees)
 
 Copy multiple trees of files on top of each other, resulting in a single merged tree.
 
