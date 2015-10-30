@@ -1,5 +1,4 @@
 var fs = require('fs')
-var path = require('path')
 var Plugin = require('broccoli-plugin')
 var symlinkOrCopySync = require('symlink-or-copy').sync
 var debug = require('debug')
@@ -46,7 +45,7 @@ BroccoliMergeTrees.prototype.build = function() {
     // Array of readdir arrays
     var names = inputPaths.map(function (inputPath, i) {
       if (possibleIndices == null || possibleIndices.indexOf(i) !== -1) {
-        return fs.readdirSync(inputPath + path.sep + baseDir).sort()
+        return fs.readdirSync(inputPath + '/' + baseDir).sort()
       } else {
         return []
       }
@@ -91,7 +90,7 @@ BroccoliMergeTrees.prototype.build = function() {
     for (i = 0; i < inputPaths.length; i++) {
       for (j = 0; j < names[i].length; j++) {
         fileName = names[i][j]
-        fullPath = inputPaths[i] + path.sep + baseDir + fileName
+        fullPath = inputPaths[i] + '/' + baseDir + fileName
         var isDirectory = checkIsDirectory(fullPath)
         if (fileInfo[fileName] == null) {
           fileInfo[fileName] = {
@@ -130,8 +129,8 @@ BroccoliMergeTrees.prototype.build = function() {
     for (i = 0; i < inputPaths.length; i++) {
       for (j = 0; j < names[i].length; j++) {
         fileName = names[i][j]
-        fullPath = inputPaths[i] + path.sep + baseDir + fileName
-        var destPath = outputPath + path.sep + baseDir + fileName
+        fullPath = inputPaths[i] + '/' + baseDir + fileName
+        var destPath = outputPath + '/' + baseDir + fileName
         var infoHash = fileInfo[fileName]
 
         if (infoHash.isDirectory) {
@@ -139,7 +138,7 @@ BroccoliMergeTrees.prototype.build = function() {
             // Copy/merge subdirectory
             if (infoHash.indices[0] === i) { // avoid duplicate recursion
               fs.mkdirSync(destPath)
-              mergeRelativePath(baseDir + fileName + path.sep, infoHash.indices)
+              mergeRelativePath(baseDir + fileName + '/', infoHash.indices)
             }
           } else {
             // Symlink entire subdirectory
