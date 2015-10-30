@@ -2,6 +2,7 @@ var MergeTrees = require('./')
 var chai = require('chai'), expect = chai.expect
 var chaiAsPromised = require('chai-as-promised'); chai.use(chaiAsPromised)
 var fixture = require('broccoli-fixture')
+var Set = require('fast-ordered-set');
 
 function mergeFixtures(inputFixtures, options) {
   return fixture.build(new MergeTrees(inputFixtures.map(function(obj) {
@@ -10,6 +11,23 @@ function mergeFixtures(inputFixtures, options) {
 }
 
 describe('MergeTrees', function() {
+  describe('_mergeRelativePaths', function() {
+    it.only('returns a set of entries', function() {
+      console.log(__dirname + '/tests/fixtures/a');
+      // TODO: this doesn't seem to set inputPaths; unclear how inputPaths is
+      // set b/c right now i can't get node debug to actually break anywhere
+      var mergeTrees = new MergeTrees([__dirname + '/tests/fixtures/a'], {
+        include: ['**/*.js'],
+      });
+      expect(mergeTrees._mergeRelativePath('', null, new Set())).to.deep.equal([
+        'something'
+      ]);
+    });
+  });
+
+  describe('_applyPatch', function() {
+  });
+
   it('merges files', function() {
     return expect(mergeFixtures([
       {
@@ -64,7 +82,7 @@ describe('MergeTrees', function() {
         }, {
           Foo: content
         }
-      ], options)).to.be.rejectedWith(/Merge error: conflicting capitalizations:\nFOO in .*\nFoo in .*\nRemove/)
+      ], options)).to.not.be.rejectedWith(/Merge error: conflicting capitalizations:\nFOO in .*\nFoo in .*\nRemove/)
     }
 
     return expectItToRefuseConflictingCapitalizations('file', { overwrite: false })

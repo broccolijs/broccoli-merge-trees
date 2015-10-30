@@ -17,6 +17,8 @@
   "dependencies": {
     "broccoli-plugin": "^1.0.0",
     "debug": "^2.2.0",
+    "fast-ordered-set": "^1.0.2",
+    "fs-tree-diff": "^0.3.0",
     "symlink-or-copy": "^1.0.0"
   },
   "devDependencies": {
