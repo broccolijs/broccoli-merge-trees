@@ -4,6 +4,7 @@ var symlinkOrCopySync = require('symlink-or-copy').sync
 var debug = require('debug')
 var Set = require('fast-ordered-set');
 var FSTree = require('fs-tree-diff');
+var Entry = require('./entry');
 
 module.exports = BroccoliMergeTrees
 BroccoliMergeTrees.prototype = Object.create(Plugin.prototype)
@@ -37,8 +38,8 @@ BroccoliMergeTrees.prototype.build = function() {
   var sourceMap = new Set();
   var newEntries = this._mergeRelativePath('', null, sourceMap); 
   var newTree = FSTree.fromEntries(newEntries);
-  var patch = this.currentTree.calculatePatch(newTree);
-  this.currentTree = newTree;
+  var patch = this._currentTree.calculatePatch(newTree);
+  this._currentTree = newTree;
   this._applyPatch(patch);
 
 
@@ -53,11 +54,11 @@ BroccoliMergeTrees.prototype._applyPatch = function (patch, sourceMapping) {
   //  apply p (create, link &c.)
 };
 
-BroccoliMergeTrees.prototype._mergeRelativePath = function (baseDir, possibleIndices, sourceMapping, entries) {
+BroccoliMergeTrees.prototype._mergeRelativePath = function (baseDir, possibleIndices, result) {
   var inputPaths = this.inputPaths;
   var outputPath = this.outputPath;
   var overwrite = this.options.overwrite;
-  if (! entries) { entries = new Set(); }
+  if (!result) { result = []; }
 
   // baseDir has a trailing path.sep if non-empty
   var i, j, fileName, fullPath
@@ -110,14 +111,17 @@ BroccoliMergeTrees.prototype._mergeRelativePath = function (baseDir, possibleInd
   for (i = 0; i < inputPaths.length; i++) {
     for (j = 0; j < names[i].length; j++) {
       fileName = names[i][j]
-      fullPath = inputPaths[i] + '/' + baseDir + fileName
-      var isDirectory = checkIsDirectory(fullPath)
+      var entry = buildEntry(baseDir + fileName, inputPaths[i]);
+      var isDirectory = entry.isDirectory();
+
       if (fileInfo[fileName] == null) {
         fileInfo[fileName] = {
+          entry: entry,
           isDirectory: isDirectory,
           indices: [i] // indices into inputPaths in which this file exists
         }
       } else {
+        fileInfo[fileName].entry = entry;
         fileInfo[fileName].indices.push(i)
 
         // Guard against conflicting file types
@@ -157,19 +161,18 @@ BroccoliMergeTrees.prototype._mergeRelativePath = function (baseDir, possibleInd
         if (infoHash.indices.length > 1) {
           // Copy/merge subdirectory
           if (infoHash.indices[0] === i) { // avoid duplicate recursion
-          // TODO: add to entries
+          // TODO: add to result
             fs.mkdirSync(destPath)
-            this._mergeRelativePath(baseDir + fileName + '/', infoHash.indices, sourceMapping)
+            this._mergeRelativePath(baseDir + fileName + '/', infoHash.indices)
           }
         } else {
-          // TODO: add to entries
+          // TODO: add to result
           // Symlink entire subdirectory
           symlinkOrCopySync(fullPath, destPath)
         }
       } else { // isFile
         if (infoHash.indices[infoHash.indices.length-1] === i) {
-          // TODO: add to entries
-          symlinkOrCopySync(fullPath, destPath)
+          result.push(infoHash);
         } else {
           // This file exists in a later inputPath. Do nothing here to have the
           // later file win out and thus "overwrite" the earlier file.
@@ -178,17 +181,11 @@ BroccoliMergeTrees.prototype._mergeRelativePath = function (baseDir, possibleInd
     }
   }
 
-  return entries;
+  return result;
 };
 
-// True if directory, false if file, exception otherwise
-function checkIsDirectory (fullPath) {
-  var stat = fs.statSync(fullPath) // may throw ENOENT on broken symlink
-  if (stat.isDirectory()) {
-    return true
-  } else if (stat.isFile()) {
-    return false
-  } else {
-    throw new Error('Unexpected file type for ' + fullPath)
-  }
+function buildEntry(relativePath, basePath) {
+  var stat = fs.statSync(basePath + '/' + relativePath);
+  return new Entry(relativePath, basePath, stat.mode, stat.size, stat.mtime);
 }
+

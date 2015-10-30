@@ -6,4 +6,9 @@ function Entry(relativePath, basePath, mode, size, mtime) {
   this.mtime = mtime;
 }
 
+
+Entry.prototype.isDirectory = function() {
+  return (this.mode & 61440) === 16384;
+};
+
 module.exports = Entry;

@@ -29,6 +29,7 @@
     "mocha-jshint": "^2.2.5"
   },
   "scripts": {
-    "test": "mocha"
+    "test": "mocha",
+    "test:debug": "mocha debug"
   }
 }

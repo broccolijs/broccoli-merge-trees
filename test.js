@@ -10,17 +10,25 @@ function mergeFixtures(inputFixtures, options) {
   }), options))
 }
 
+function mapBy(array, property) {
+  return array.map(function (item) {
+    return item[property];
+  });
+}
+
 describe('MergeTrees', function() {
   describe('_mergeRelativePaths', function() {
-    it.only('returns a set of entries', function() {
-      console.log(__dirname + '/tests/fixtures/a');
-      // TODO: this doesn't seem to set inputPaths; unclear how inputPaths is
-      // set b/c right now i can't get node debug to actually break anywhere
-      var mergeTrees = new MergeTrees([__dirname + '/tests/fixtures/a'], {
-        include: ['**/*.js'],
-      });
-      expect(mergeTrees._mergeRelativePath('', null, new Set())).to.deep.equal([
-        'something'
+    it('returns an array of file infos', function() {
+      var mergeTrees = new MergeTrees([]);
+      mergeTrees.inputPaths = [__dirname + '/tests/fixtures/a'];
+      mergeTrees.outputPath = __dirname + '/tmp/output';
+
+      var fileInfos = mergeTrees._mergeRelativePath('');
+      var entries = mapBy(fileInfos, 'entry');
+
+      expect(mapBy(entries, 'relativePath')).to.deep.equal([
+        'bar.js',
+        'foo.js',
       ]);
     });
   });
@@ -82,7 +90,7 @@ describe('MergeTrees', function() {
         }, {
           Foo: content
         }
-      ], options)).to.not.be.rejectedWith(/Merge error: conflicting capitalizations:\nFOO in .*\nFoo in .*\nRemove/)
+      ], options)).to.be.rejectedWith(/Merge error: conflicting capitalizations:\nFOO in .*\nFoo in .*\nRemove/)
     }
 
     return expectItToRefuseConflictingCapitalizations('file', { overwrite: false })
