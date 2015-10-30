@@ -1,7 +1,20 @@
 var fs = require('fs')
+var rimraf = require('rimraf');
 var Plugin = require('broccoli-plugin')
 var symlinkOrCopySync = require('symlink-or-copy').sync
 var debug = require('debug')
+var FSTree = require('fs-tree-diff');
+var Entry = require('./entry');
+
+var canSymlink = require('can-symlink')();
+
+function unlinkOrRmrfSync(path) {
+  if (canSymlink) {
+    fs.unlinkSync(path);
+  } else {
+    rimraf.sync(path);
+  }
+}
 
 module.exports = BroccoliMergeTrees
 BroccoliMergeTrees.prototype = Object.create(Plugin.prototype)
@@ -18,8 +31,11 @@ function BroccoliMergeTrees(inputNodes, options) {
   })
 
   this._debug = debug(name);
+  this._persistentOutput = true;
+
   this.options = options
   this._buildCount = 0;
+  this._currentTree = FSTree.fromPaths([]);
 }
 
 BroccoliMergeTrees.prototype.debug = function(message, args) {
@@ -30,20 +46,77 @@ BroccoliMergeTrees.prototype.build = function() {
   this._buildCount++;
 
   var start = new Date()
-  this._mergeRelativePath('')
+
+  var fileInfos = this._mergeRelativePath('');
+  var entries = fileInfos.map(function(fileInfo) {
+    return fileInfo.entry;
+  });
+  var indices = fileInfos.map(function(fileInfo) {
+    return fileInfo.indices;
+  });
+  var mergeTime = new Date() - start + 'ms';
+
+  var treeTimeStart = new Date();
+  var newTree = FSTree.fromEntries(entries);
+  var patch = this._currentTree.calculatePatch(newTree);
+  var treeTime = new Date() - treeTimeStart + 'ms';
+
+  this._currentTree = newTree;
+
+  var applyPatchStart = new Date();
+
+  this._applyPatch(patch);
+  var applyPatchTime = new Date() - applyPatchStart + 'ms';
+
   this.debug('build: \n %o', {
     count: this._buildCount,
-    in: new Date() - start + 'ms'
-  })
+    in: new Date() - start + 'ms',
+    mergeTime: mergeTime,
+    applyPatchTime: applyPatchTime,
+    treeTime: treeTime,
+    entries: entries.length,
+    indices: indices.reduce(function(sum, indices) {
+      return sum += indices.length;
+    }, 0),
+    overwrite: this.options.overwrite,
+  });
+}
+
+BroccoliMergeTrees.prototype._applyPatch = function (patch) {
+  patch.forEach(function(patch) {
+    var operation = patch[0];
+    var relativePath = patch[1];
+    var entry = patch[2];
+
+    var outputFilePath = this.outputPath + '/' + relativePath;
+    var inputFilePath = entry && entry.basePath + '/' + relativePath;
+
+    switch(operation) {
+      case 'linkdir':   return symlinkOrCopySync(inputFilePath, outputFilePath);
+      case 'mkdir':     return fs.mkdirSync(outputFilePath);
+      case 'rmdir':     return fs.rmdirSync(outputFilePath);
+      case 'unlink':    return fs.unlinkSync(outputFilePath);
+      case 'unlinkdir': return unlinkOrRmrfSync(outputFilePath);
+      case 'create':    return symlinkOrCopySync(inputFilePath, outputFilePath);
+      case 'update':
+        fs.unlinkSync(outputFilePath);
+        return symlinkOrCopySync(inputFilePath, outputFilePath);
+    }
+
+  }, this);
 };
 
-BroccoliMergeTrees.prototype._mergeRelativePath = function(baseDir, possibleIndices) {
+BroccoliMergeTrees.prototype._mergeRelativePath = function (baseDir, possibleIndices) {
+  var inputPaths = this.inputPaths;
+  //var outputPath = this.outputPath;
+  var overwrite = this.options.overwrite;
+  var result = [];
+
   // baseDir has a trailing path.sep if non-empty
   var i, j, fileName, fullPath
-  var overwrite = this.options.overwrite
 
   // Array of readdir arrays
-  var names = this.inputPaths.map(function (inputPath, i) {
+  var names = inputPaths.map(function (inputPath, i) {
     if (possibleIndices == null || possibleIndices.indexOf(i) !== -1) {
       return fs.readdirSync(inputPath + '/' + baseDir).sort()
     } else {
@@ -60,7 +133,7 @@ BroccoliMergeTrees.prototype._mergeRelativePath = function(baseDir, possibleIndi
       // Note: We are using .toLowerCase to approximate the case
       // insensitivity behavior of HFS+ and NTFS. While .toLowerCase is at
       // least Unicode aware, there are probably better-suited functions.
-      if (lowerCaseNames[lowerCaseName] == null) {
+      if (lowerCaseNames[lowerCaseName] === undefined) {
         lowerCaseNames[lowerCaseName] = {
           index: i,
           originalName: fileName
@@ -87,17 +160,26 @@ BroccoliMergeTrees.prototype._mergeRelativePath = function(baseDir, possibleIndi
   // Accumulate fileInfo hashes of { isDirectory, indices }.
   // Also guard against conflicting file types and overwriting.
   var fileInfo = {}
-  for (i = 0; i < this.inputPaths.length; i++) {
+  var inputPath;
+  var infoHash;
+
+  for (i = 0; i < inputPaths.length; i++) {
+    inputPath = inputPaths[i];
     for (j = 0; j < names[i].length; j++) {
       fileName = names[i][j]
-      fullPath = this.inputPaths[i] + '/' + baseDir + fileName
-      var isDirectory = checkIsDirectory(fullPath)
+
+      // TODO: walk backwards to skip stating files we will just drop anyways
+      var entry = buildEntry(baseDir + fileName, inputPath);
+      var isDirectory = entry.isDirectory();
+
       if (fileInfo[fileName] == null) {
         fileInfo[fileName] = {
+          entry: entry,
           isDirectory: isDirectory,
           indices: [i] // indices into inputPaths in which this file exists
-        }
+        };
       } else {
+        fileInfo[fileName].entry = entry;
         fileInfo[fileName].indices.push(i)
 
         // Guard against conflicting file types
@@ -130,40 +212,30 @@ BroccoliMergeTrees.prototype._mergeRelativePath = function(baseDir, possibleIndi
     for (j = 0; j < names[i].length; j++) {
       fileName = names[i][j]
       fullPath = this.inputPaths[i] + '/' + baseDir + fileName
-      var destPath = this.outputPath + '/' + baseDir + fileName
-      var infoHash = fileInfo[fileName]
+      infoHash = fileInfo[fileName]
 
       if (infoHash.isDirectory) {
-        if (infoHash.indices.length > 1) {
-          // Copy/merge subdirectory
-          if (infoHash.indices[0] === i) { // avoid duplicate recursion
-            fs.mkdirSync(destPath)
-            this._mergeRelativePath(baseDir + fileName + '/', infoHash.indices)
-          }
+        if (infoHash.indices.length === 1 && canSymlink) {
+          // This directory appears in only one tree: we can symlink it without
+          // reading the full tree
+          infoHash.entry.linkDir = true;
+          result.push(infoHash);
         } else {
-          // Symlink entire subdirectory
-          symlinkOrCopySync(fullPath, destPath)
+          if (infoHash.indices[0] === i) { // avoid duplicate recursion
+            result.push.apply(result, this._mergeRelativePath(baseDir + fileName + '/', infoHash.indices))
+          }
         }
       } else { // isFile
-        if (infoHash.indices[infoHash.indices.length-1] === i) {
-          symlinkOrCopySync(fullPath, destPath)
-        } else {
-          // This file exists in a later inputPath. Do nothing here to have the
-          // later file win out and thus "overwrite" the earlier file.
-        }
+        result.push(infoHash);
       }
     }
   }
+
+  return result;
 };
 
-// True if directory, false if file, exception otherwise
-function checkIsDirectory (fullPath) {
-  var stat = fs.statSync(fullPath) // may throw ENOENT on broken symlink
-  if (stat.isDirectory()) {
-    return true
-  } else if (stat.isFile()) {
-    return false
-  } else {
-    throw new Error('Unexpected file type for ' + fullPath)
-  }
+function buildEntry(relativePath, basePath) {
+  var stat = fs.statSync(basePath + '/' + relativePath);
+  return new Entry(relativePath, basePath, stat.mode, stat.size, stat.mtime);
 }
+
