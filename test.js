@@ -1,7 +1,17 @@
+'use strict';
+
 var MergeTrees = require('./')
 var chai = require('chai'), expect = chai.expect
 var chaiAsPromised = require('chai-as-promised'); chai.use(chaiAsPromised)
 var fixture = require('broccoli-fixture')
+
+require('mocha-jshint')({
+  paths: [
+    'index.js',
+    'test.js'
+  ]
+});
+
 
 function mergeFixtures(inputFixtures, options) {
   return fixture.build(new MergeTrees(inputFixtures.map(function(obj) {
@@ -9,6 +19,7 @@ function mergeFixtures(inputFixtures, options) {
   }), options))
 }
 
+/* globals describe:true, it:true*/
 describe('MergeTrees', function() {
   it('merges files', function() {
     return expect(mergeFixtures([
@@ -124,7 +135,34 @@ describe('MergeTrees', function() {
         return expectItToRejectTypeCollisions({ overwrite: true })
       })
   })
-})
 
+  describe('constructor', function() {
+    it('provides useful feedback if non-array is provided', function() {
+      expect(function() {
+        new MergeTrees();
+      }).to.throw('broccoli-merge-trees: Expected array, got: [undefined]')
 
-require('mocha-jshint')()
+      expect(function() {
+        new MergeTrees(undefined, {
+          annotation: 'some-annotation'
+        });
+      }).to.throw('broccoli-merge-trees:some-annotation Expected array, got: [undefined]')
+    });
+
+    it('provides useful feedback if array containing a non-tree is provided', function() {
+      new MergeTrees([]); // should pass
+
+      expect(function() {
+        new MergeTrees([undefined])
+      }).to.throw('broccoli-merge-trees: requires inputNodes to be all trees, but got: []')
+
+      expect(function() {
+        new MergeTrees([null])
+      }).to.throw('broccoli-merge-trees: requires inputNodes to be all trees, but got: []')
+
+      expect(function() {
+        new MergeTrees([true, 1, NaN, null])
+      }).to.throw('broccoli-merge-trees: requires inputNodes to be all trees, but got: [true,1,NaN,]')
+    });
+  });
+});
