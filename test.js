@@ -2,7 +2,6 @@ var MergeTrees = require('./')
 var chai = require('chai'), expect = chai.expect
 var chaiAsPromised = require('chai-as-promised'); chai.use(chaiAsPromised)
 var fixture = require('broccoli-fixture')
-var Set = require('fast-ordered-set');
 
 function mergeFixtures(inputFixtures, options) {
   return fixture.build(new MergeTrees(inputFixtures.map(function(obj) {
