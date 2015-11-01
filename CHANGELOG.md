@@ -1,5 +1,7 @@
 # master
 
+# 0.2.4
+
 * Clearer error messages
 
 # 0.2.3
