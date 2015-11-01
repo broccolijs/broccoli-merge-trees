@@ -1,5 +1,7 @@
 # master
 
+* Clearer error messages
+
 # 0.2.3
 
 * Add debug logging
