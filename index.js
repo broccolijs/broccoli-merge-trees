@@ -1,9 +1,21 @@
 var fs = require('fs')
+var rimraf = require('rimraf');
 var Plugin = require('broccoli-plugin')
 var symlinkOrCopySync = require('symlink-or-copy').sync
 var debug = require('debug')
 var FSTree = require('fs-tree-diff');
 var Entry = require('./entry');
+
+var isWindows = process.platform === 'win32'
+var canSymlink = ! isWindows;
+
+function unlinkOrRmrfSync(path) {
+  if (canSymlink) {
+    fs.unlinkSync(path);
+  } else {
+    rimraf(path);
+  }
+}
 
 module.exports = BroccoliMergeTrees
 BroccoliMergeTrees.prototype = Object.create(Plugin.prototype)
@@ -81,9 +93,11 @@ BroccoliMergeTrees.prototype._applyPatch = function (patch) {
     var inputFilePath = entry && entry.basePath + '/' + relativePath;
 
     switch(operation) {
-      case 'mkdir':  return fs.mkdirSync(outputFilePath);
-      case 'rmdir':  return fs.rmdirSync(outputFilePath);
-      case 'unlink': return fs.unlinkSync(outputFilePath);
+      case 'linkdir':   return symlinkOrCopySync(inputFilePath, outputFilePath);
+      case 'mkdir':     return fs.mkdirSync(outputFilePath);
+      case 'rmdir':     return fs.rmdirSync(outputFilePath);
+      case 'unlink':    return fs.unlinkSync(outputFilePath);
+      case 'unlinkdir': return unlinkOrRmrfSync(outputFilePath);
       case 'create': return symlinkOrCopySync(inputFilePath, outputFilePath);
       case 'update':
         fs.unlinkSync(outputFilePath);
@@ -165,8 +179,6 @@ BroccoliMergeTrees.prototype._mergeRelativePath = function (baseDir, possibleInd
           isDirectory: isDirectory,
           indices: [i] // indices into inputPaths in which this file exists
         };
-
-        result.push(fileInfo[fileName]);
       } else {
         fileInfo[fileName].entry = entry;
         fileInfo[fileName].indices.push(i)
@@ -204,9 +216,18 @@ BroccoliMergeTrees.prototype._mergeRelativePath = function (baseDir, possibleInd
       infoHash = fileInfo[fileName]
 
       if (infoHash.isDirectory) {
-        if (infoHash.indices[0] === i) { // avoid duplicate recursion
-          result.push.apply(result, this._mergeRelativePath(baseDir + fileName + '/', infoHash.indices))
+        if (infoHash.indices.length === 1 && canSymlink) {
+          // This directory appears in only one tree: we can symlink it without
+          // reading the full tree
+          infoHash.entry.linkDir = true;
+          result.push(infoHash);
+        } else {
+          if (infoHash.indices[0] === i) { // avoid duplicate recursion
+            result.push.apply(result, this._mergeRelativePath(baseDir + fileName + '/', infoHash.indices))
+          }
         }
+      } else {
+        result.push(infoHash);
       }
     }
   }

@@ -1,12 +1,14 @@
 var MergeTrees = require('./')
 var chai = require('chai'), expect = chai.expect
 var chaiAsPromised = require('chai-as-promised'); chai.use(chaiAsPromised)
-var fixture = require('broccoli-fixture')
+var Fixture = require('broccoli-fixture')
 
 function mergeFixtures(inputFixtures, options) {
-  return fixture.build(new MergeTrees(inputFixtures.map(function(obj) {
-    return new fixture.Node(obj)
-  }), options))
+  return Fixture.build(new MergeTrees(inputFixtures.map(inputFixture), options))
+}
+
+function inputFixture(obj) {
+  return new Fixture.Node(obj)
 }
 
 function mapBy(array, property) {
@@ -30,9 +32,6 @@ describe('MergeTrees', function() {
         'foo.js',
       ]);
     });
-  });
-
-  describe('_applyPatch', function() {
   });
 
   it('merges files', function() {
@@ -79,6 +78,87 @@ describe('MergeTrees', function() {
       baz: '3c'
     })
   })
+
+  it('adds non-conflicting non-empty directories to the output', function() {
+    return expect(mergeFixtures([
+      {
+        foo: {
+          bar: '1a',
+        }
+      }, {
+      }
+    ])).to.eventually.deep.equal({
+      foo: {
+        bar: '1a',
+      }
+    })
+  });
+
+  it('adds nested non-conflicting non-empty directories to the output', function() {
+    return expect(mergeFixtures([
+      {
+        foo: {
+          bar: '1a',
+          baz: {
+            qux: {
+              quux: '1b',
+            }
+          }
+        }
+      }, {
+        bar: '2a',
+      }
+    ])).to.eventually.deep.equal({
+      foo: {
+        bar: '1a',
+        baz: {
+          qux: {
+            quux: '1b',
+          }
+        }
+      },
+      bar: '2a',
+    })
+  });
+
+  it('removes non-conflicting non-empty directories', function() {
+    var source = inputFixture({
+      foo: {
+        bar: '1a',
+      }
+    });
+    var fixture = new Fixture.Builder(new MergeTrees([source]));
+
+    return expect(fixture.build().then(function () {
+      source.fixture = {};
+      return fixture.build();
+    })).to.eventually.deep.equal({});
+  });
+
+  it('removes nested non-conflicting non-empty directories', function() {
+    var source = inputFixture({
+      foo: {
+        bar: {
+          baz: '1a',
+        },
+      },
+    });
+    var sibling = inputFixture({
+      foo: {
+        qux: '2a',
+      }
+    });
+    var fixture = new Fixture.Builder(new MergeTrees([source, sibling]));
+
+    return expect(fixture.build().then(function () {
+      source.fixture = {};
+      return fixture.build();
+    })).to.eventually.deep.equal({
+      foo: {
+        qux: '2a',
+      }
+    });
+  });
 
   it('refuses to honor conflicting capitalizations, with overwrite: false and true', function() {
     function expectItToRefuseConflictingCapitalizations(type, options) {
