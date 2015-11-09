@@ -1,5 +1,7 @@
 # master
 
+# 1.0.0
+
 * Version bump without change
 
 # 0.2.4
