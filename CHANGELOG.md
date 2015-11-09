@@ -1,5 +1,7 @@
 # master
 
+* Version bump without change
+
 # 0.2.4
 
 * Clearer error messages
