@@ -6,8 +6,7 @@ var debug = require('debug')
 var FSTree = require('fs-tree-diff');
 var Entry = require('./entry');
 
-var isWindows = process.platform === 'win32'
-var canSymlink = ! isWindows;
+var canSymlink = require('can-symlink')();
 
 function unlinkOrRmrfSync(path) {
   if (canSymlink) {
