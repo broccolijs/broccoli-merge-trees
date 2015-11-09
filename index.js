@@ -63,10 +63,10 @@ BroccoliMergeTrees.prototype.build = function() {
 
   this._currentTree = newTree;
 
-  var applyPatch = new Date();
+  var applyPatchStart = new Date();
 
   this._applyPatch(patch);
-  var applyPatchTime = new Date() - applyPatch + 'ms';
+  var applyPatchTime = new Date() - applyPatchStart + 'ms';
 
   this.debug('build: \n %o', {
     count: this._buildCount,
