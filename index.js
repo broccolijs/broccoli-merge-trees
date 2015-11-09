@@ -99,7 +99,7 @@ BroccoliMergeTrees.prototype._applyPatch = function (patch) {
       case 'rmdir':     return fs.rmdirSync(outputFilePath);
       case 'unlink':    return fs.unlinkSync(outputFilePath);
       case 'unlinkdir': return unlinkOrRmrfSync(outputFilePath);
-      case 'create': return symlinkOrCopySync(inputFilePath, outputFilePath);
+      case 'create':    return symlinkOrCopySync(inputFilePath, outputFilePath);
       case 'update':
         fs.unlinkSync(outputFilePath);
         return symlinkOrCopySync(inputFilePath, outputFilePath);
