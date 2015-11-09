@@ -91,7 +91,10 @@ BroccoliMergeTrees.prototype._applyPatch = function (patch) {
     var outputFilePath = this.outputPath + '/' + relativePath;
     var inputFilePath = entry && entry.basePath + '/' + relativePath;
 
-    this.debug('operation: %s relativePath: %s entry: %o', operation, relativePath, entry);
+    this.debug('%o', {
+       operation: operation,
+       entry:entry
+    });
 
     switch(operation) {
       case 'linkdir':   return symlinkOrCopySync(inputFilePath, outputFilePath);
