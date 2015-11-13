@@ -1,7 +1,7 @@
 {
   "name": "broccoli-merge-trees",
   "description": "Broccoli plugin to merge multiple trees into one",
-  "version": "1.1.0",
+  "version": "1.0.0",
   "author": "Jo Liss <joliss42@gmail.com>",
   "main": "index.js",
   "license": "MIT",
@@ -16,11 +16,7 @@
   ],
   "dependencies": {
     "broccoli-plugin": "^1.0.0",
-    "can-symlink": "0.0.1",
     "debug": "^2.2.0",
-    "fast-ordered-set": "^1.0.2",
-    "fs-tree-diff": "^0.4.3",
-    "rimraf": "^2.4.3",
     "symlink-or-copy": "^1.0.0"
   },
   "devDependencies": {
@@ -31,7 +27,6 @@
     "mocha-jshint": "^2.2.5"
   },
   "scripts": {
-    "test": "mocha",
-    "test:debug": "mocha debug"
+    "test": "mocha"
   }
 }
