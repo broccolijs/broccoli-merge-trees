@@ -2,6 +2,18 @@ var fs = require('fs')
 var Plugin = require('broccoli-plugin')
 var symlinkOrCopySync = require('symlink-or-copy').sync
 var debug = require('debug')
+var FSTree = require('fs-tree-diff');
+var Entry = require('./entry');
+
+var canSymlink = require('can-symlink')();
+
+function unlinkOrRmrfSync(path) {
+  if (canSymlink) {
+    fs.unlinkSync(path);
+  } else {
+    rimraf.sync(path);
+  }
+}
 
 module.exports = BroccoliMergeTrees
 BroccoliMergeTrees.prototype = Object.create(Plugin.prototype)
