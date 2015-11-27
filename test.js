@@ -47,6 +47,23 @@ describe('MergeTrees', function() {
     })
   })
 
+
+  it('merges empty directories', function() {
+    return expect(mergeFixtures([
+      {
+        foo: {},
+        bar: {}
+      }, {
+        bar: {},
+        baz: {}
+      }
+    ])).to.eventually.deep.equal({
+      foo: {},
+      bar: {},
+      baz: {}
+    })
+  })
+
   it('refuses to overwrite files by default', function() {
     return expect(mergeFixtures([
       {

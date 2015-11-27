@@ -27,11 +27,11 @@ function BroccoliMergeTrees(inputNodes, options) {
     throw new TypeError(name + ': Expected array, got: [' + inputNodes +']')
   }
   Plugin.call(this, inputNodes, {
+    persistentOutput: true,
     annotation: options.annotation
   })
 
   this._debug = debug(name);
-  this._persistentOutput = true;
 
   this.options = options
   this._buildCount = 0;
@@ -65,7 +65,14 @@ BroccoliMergeTrees.prototype.build = function() {
 
   var applyPatchStart = new Date();
 
-  this._applyPatch(patch);
+  try {
+    this._applyPatch(patch);
+  } catch(e) {
+    // Whatever the failure, start again and do a complete build next time
+    this._currentTree = FSTree.fromPaths([]);
+    throw e;
+  }
+
   var applyPatchTime = new Date() - applyPatchStart + 'ms';
 
   this.debug('build: \n %o', {
@@ -103,7 +110,7 @@ BroccoliMergeTrees.prototype._applyPatch = function (patch) {
       case 'unlink':    return fs.unlinkSync(outputFilePath);
       case 'unlinkdir': return unlinkOrRmrfSync(outputFilePath);
       case 'create':    return symlinkOrCopySync(inputFilePath, outputFilePath);
-      case 'update':
+      case 'change':
         fs.unlinkSync(outputFilePath);
         return symlinkOrCopySync(inputFilePath, outputFilePath);
     }
@@ -113,12 +120,11 @@ BroccoliMergeTrees.prototype._applyPatch = function (patch) {
 
 BroccoliMergeTrees.prototype._mergeRelativePath = function (baseDir, possibleIndices) {
   var inputPaths = this.inputPaths;
-  //var outputPath = this.outputPath;
   var overwrite = this.options.overwrite;
   var result = [];
 
   // baseDir has a trailing path.sep if non-empty
-  var i, j, fileName, fullPath
+  var i, j, fileName, fullPath, subEntries;
 
   // Array of readdir arrays
   var names = inputPaths.map(function (inputPath, i) {
@@ -227,11 +233,24 @@ BroccoliMergeTrees.prototype._mergeRelativePath = function (baseDir, possibleInd
           result.push(infoHash);
         } else {
           if (infoHash.indices[0] === i) { // avoid duplicate recursion
-            result.push.apply(result, this._mergeRelativePath(baseDir + fileName + '/', infoHash.indices))
+            subEntries = this._mergeRelativePath(baseDir + fileName + '/', infoHash.indices);
+
+            if (subEntries.length === 0) {
+              // This directory appears in multiple inputs, but is an empty dir
+              // in all of them
+              result.push(infoHash);
+            } else {
+              result.push.apply(result, subEntries);
+            }
           }
         }
       } else { // isFile
-        result.push(infoHash);
+        if (infoHash.indices[infoHash.indices.length-1] === i) {
+          result.push(infoHash);
+        } else {
+          // This file exists in a later inputPath. Do nothing here to have the
+          // later file win out and thus "overwrite" the earlier file.
+        }
       }
     }
   }
