@@ -70,6 +70,7 @@ BroccoliMergeTrees.prototype.build = function() {
   } catch(e) {
     // Whatever the failure, start again and do a complete build next time
     this._currentTree = FSTree.fromPaths([]);
+    rimraf.sync(this.outputPath);
     throw e;
   }
 
