@@ -68,6 +68,7 @@ BroccoliMergeTrees.prototype.build = function() {
   try {
     this._applyPatch(patch);
   } catch(e) {
+    debug('patch application failed, starting from scratch');
     // Whatever the failure, start again and do a complete build next time
     this._currentTree = FSTree.fromPaths([]);
     rimraf.sync(this.outputPath);
