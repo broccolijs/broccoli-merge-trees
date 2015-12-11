@@ -1,5 +1,7 @@
 # master
 
+* Update output directory incrementally for better performance
+
 # 1.0.0
 
 * Version bump without change
