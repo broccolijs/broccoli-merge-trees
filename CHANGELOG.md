@@ -1,5 +1,7 @@
 # master
 
+# 1.1.0
+
 * Update output directory incrementally for better performance
 
 # 1.0.0
