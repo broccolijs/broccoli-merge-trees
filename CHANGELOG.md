@@ -1,5 +1,7 @@
 # master
 
+# 1.1.1
+
 * Upgrade to can-symlink 1.0.0
 
 # 1.1.0
