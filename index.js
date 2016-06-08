@@ -7,6 +7,7 @@ var FSTree = require('fs-tree-diff');
 var Entry = require('./entry');
 
 var canSymlink = require('can-symlink')();
+var defaultIsEqual = FSTree.defaultIsEqual;
 
 function unlinkOrRmrfSync(path) {
   if (canSymlink) {
@@ -42,11 +43,30 @@ BroccoliMergeTrees.prototype.debug = function(message, args) {
   this._debug(message, args);
 }
 
+function isLinkStateEqual(entryA, entryB) {
+  // We don't symlink files, only directories
+  if (!(entryA.isDirectory() && entryB.isDirectory())) {
+    return true;
+  }
+
+  // We only symlink on systems that support it
+  if (!canSymlink) {
+    return true;
+  }
+
+  // This can change between rebuilds if a dir goes from existing in multiple
+  // input sources to exactly one input source, or vice versa
+  return entryA.linkDir === entryB.linkDir;
+}
+
+function isEqual(entryA, entryB) {
+  return defaultIsEqual(entryA, entryB) && isLinkStateEqual(entryA, entryB);
+}
+
 BroccoliMergeTrees.prototype.build = function() {
   this._buildCount++;
 
   var start = new Date()
-
   var fileInfos = this._mergeRelativePath('');
   var entries = fileInfos.map(function(fileInfo) {
     return fileInfo.entry;
@@ -58,7 +78,7 @@ BroccoliMergeTrees.prototype.build = function() {
 
   var treeTimeStart = new Date();
   var newTree = FSTree.fromEntries(entries);
-  var patch = this._currentTree.calculatePatch(newTree);
+  var patch = this._currentTree.calculatePatch(newTree, isEqual);
   var treeTime = new Date() - treeTimeStart + 'ms';
 
   this._currentTree = newTree;
@@ -106,24 +126,58 @@ BroccoliMergeTrees.prototype._applyPatch = function (patch) {
     });
 
     switch(operation) {
-      case 'linkdir':   return symlinkOrCopySync(inputFilePath, outputFilePath);
-      case 'mkdir':     return fs.mkdirSync(outputFilePath);
-      case 'rmdir':     return fs.rmdirSync(outputFilePath);
+      case 'mkdir':     return this._applyMkdir(entry, inputFilePath, outputFilePath);
+      case 'rmdir':     return this._applyRmdir(entry, inputFilePath, outputFilePath);
       case 'unlink':    return fs.unlinkSync(outputFilePath);
-      case 'unlinkdir': return unlinkOrRmrfSync(outputFilePath);
       case 'create':    return symlinkOrCopySync(inputFilePath, outputFilePath);
-      case 'change':
-        fs.unlinkSync(outputFilePath);
-        return symlinkOrCopySync(inputFilePath, outputFilePath);
+      case 'change':    return this._applyChange(entry, inputFilePath, outputFilePath);
     }
 
   }, this);
 };
 
+BroccoliMergeTrees.prototype._applyMkdir = function (entry, inputFilePath, outputFilePath) {
+  if (entry.linkDir) {
+    return symlinkOrCopySync(inputFilePath, outputFilePath);
+  } else {
+    return fs.mkdirSync(outputFilePath);
+  }
+}
+
+BroccoliMergeTrees.prototype._applyRmdir = function (entry, inputFilePath, outputFilePath) {
+  if (entry.linkDir) {
+    return unlinkOrRmrfSync(outputFilePath);
+  } else {
+    return fs.rmdirSync(outputFilePath);
+  }
+}
+
+BroccoliMergeTrees.prototype._applyChange = function (entry, inputFilePath, outputFilePath) {
+  if (entry.isDirectory()) {
+    if (entry.linkDir) {
+      // directory copied -> link
+      fs.rmdirSync(outputFilePath);
+      return symlinkOrCopySync(inputFilePath, outputFilePath);
+    } else {
+      // directory link -> copied
+      //
+      // we don't check for `canSymlink` here because that is handled in
+      // `isLinkStateEqual`.  If symlinking is not supported we will not get
+      // directory change operations
+      return fs.unlinkSync(outputFilePath);
+    }
+  } else {
+    // file changed
+    fs.unlinkSync(outputFilePath);
+    return symlinkOrCopySync(inputFilePath, outputFilePath);
+  }
+}
+
 BroccoliMergeTrees.prototype._mergeRelativePath = function (baseDir, possibleIndices) {
   var inputPaths = this.inputPaths;
   var overwrite = this.options.overwrite;
   var result = [];
+  var isBaseCase = (possibleIndices === undefined);
 
   // baseDir has a trailing path.sep if non-empty
   var i, j, fileName, fullPath, subEntries;
@@ -237,13 +291,10 @@ BroccoliMergeTrees.prototype._mergeRelativePath = function (baseDir, possibleInd
           if (infoHash.indices[0] === i) { // avoid duplicate recursion
             subEntries = this._mergeRelativePath(baseDir + fileName + '/', infoHash.indices);
 
-            if (subEntries.length === 0) {
-              // This directory appears in multiple inputs, but is an empty dir
-              // in all of them
-              result.push(infoHash);
-            } else {
-              result.push.apply(result, subEntries);
-            }
+            // FSTreeDiff requires intermediate directory entries, so push
+            // `infoHash` (this dir) as well as sub entries.
+            result.push(infoHash);
+            result.push.apply(result, subEntries);
           }
         }
       } else { // isFile
@@ -257,7 +308,23 @@ BroccoliMergeTrees.prototype._mergeRelativePath = function (baseDir, possibleInd
     }
   }
 
-  return result;
+  if (isBaseCase) {
+    // FSTreeDiff requires entries to be sorted by `relativePath`.
+    return result.sort(function (a, b) {
+      var pathA = a.entry.relativePath;
+      var pathB = b.entry.relativePath;
+
+      if (pathA === pathB) {
+        return 0;
+      } else if (pathA < pathB) {
+        return -1;
+      } else {
+        return 1;
+      }
+    });
+  } else {
+    return result;
+  }
 };
 
 function buildEntry(relativePath, basePath) {

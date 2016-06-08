@@ -32,6 +32,21 @@ describe('MergeTrees', function() {
         'foo.js',
       ]);
     });
+
+    it('sorts its return value', function() {
+      var mergeTrees = new MergeTrees([]);
+      mergeTrees.inputPaths = [__dirname + '/tests/fixtures/b/input0', __dirname + '/tests/fixtures/b/input1'];
+      mergeTrees.outputPath = __dirname + '/tmp/output';
+
+      var fileInfos = mergeTrees._mergeRelativePath('');
+      var entries = mapBy(fileInfos, 'entry');
+
+      expect(mapBy(entries, 'relativePath')).to.deep.equal([
+        'foo',
+        'foo/a.js',
+        'foo/b.js',
+      ]);
+    });
   });
 
   it('merges files', function() {

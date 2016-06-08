@@ -10,7 +10,7 @@ function Entry(relativePath, basePath, mode, size, mtime) {
 }
 
 
-Entry.prototype.isDirectory = function() {
+Entry.prototype.isDirectory = function isDirectory() {
   /*jshint -W016 */
   return (this.mode & 61440) === 16384;
 };
