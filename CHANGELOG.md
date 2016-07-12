@@ -1,5 +1,9 @@
 # master
 
+# 1.1.2
+
+* Update fs-tree-diff, fixes "rename only file in directory" bug, and possible performance improvements.
+
 # 1.1.1
 
 * Upgrade to can-symlink 1.0.0
