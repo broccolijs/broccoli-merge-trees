@@ -19,7 +19,7 @@
     "can-symlink": "^1.0.0",
     "debug": "^2.2.0",
     "fast-ordered-set": "^1.0.2",
-    "fs-tree-diff": "^0.4.3",
+    "fs-tree-diff": "^0.5.0",
     "rimraf": "^2.4.3",
     "symlink-or-copy": "^1.0.0"
   },
