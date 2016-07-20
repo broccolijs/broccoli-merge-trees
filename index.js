@@ -6,8 +6,20 @@ var debug = require('debug')
 var FSTree = require('fs-tree-diff');
 var Entry = require('./entry');
 
+var heimdall = require('heimdalljs');
 var canSymlink = require('can-symlink')();
 var defaultIsEqual = FSTree.defaultIsEqual;
+
+function ApplyPatchesSchema() {
+  this.mkdir = 0;
+  this.rmdir = 0;
+  this.unlink = 0;
+  this.change = 0;
+  this.create = 0;
+  this.other = 0;
+  this.processed = 0;
+  this.linked = 0;
+}
 
 function unlinkOrRmrfSync(path) {
   if (canSymlink) {
@@ -64,54 +76,39 @@ function isEqual(entryA, entryB) {
 }
 
 BroccoliMergeTrees.prototype.build = function() {
-  this._buildCount++;
+  var instrumentation = heimdall.start('derivePatches');
 
-  var start = new Date()
   var fileInfos = this._mergeRelativePath('');
   var entries = fileInfos.map(function(fileInfo) {
     return fileInfo.entry;
   });
-  var indices = fileInfos.map(function(fileInfo) {
-    return fileInfo.indices;
-  });
-  var mergeTime = new Date() - start + 'ms';
 
-  var treeTimeStart = new Date();
   var newTree = FSTree.fromEntries(entries);
-  var patch = this._currentTree.calculatePatch(newTree, isEqual);
-  var treeTime = new Date() - treeTimeStart + 'ms';
+  var patches = this._currentTree.calculatePatch(newTree, isEqual);
+
+  instrumentation.stats.patches = patches.length;
+  instrumentation.stats.entries = entries.length;
+
+  instrumentation.stop();
 
   this._currentTree = newTree;
 
-  var applyPatchStart = new Date();
+  instrumentation = heimdall.start('applyPatches', ApplyPatchesSchema);
 
   try {
-    this._applyPatch(patch);
+    this._applyPatch(patches, instrumentation.stats);
   } catch(e) {
-    debug('patch application failed, starting from scratch');
+    heimdall.log('patch application failed, starting from scratch');
     // Whatever the failure, start again and do a complete build next time
     this._currentTree = FSTree.fromPaths([]);
     rimraf.sync(this.outputPath);
     throw e;
   }
 
-  var applyPatchTime = new Date() - applyPatchStart + 'ms';
-
-  this.debug('build: \n %o', {
-    count: this._buildCount,
-    in: new Date() - start + 'ms',
-    mergeTime: mergeTime,
-    applyPatchTime: applyPatchTime,
-    treeTime: treeTime,
-    entries: entries.length,
-    indices: indices.reduce(function(sum, indices) {
-      return sum += indices.length;
-    }, 0),
-    overwrite: this.options.overwrite,
-  });
+  instrumentation.stop();
 }
 
-BroccoliMergeTrees.prototype._applyPatch = function (patch) {
+BroccoliMergeTrees.prototype._applyPatch = function (patch, instrumentation) {
   patch.forEach(function(patch) {
     var operation = patch[0];
     var relativePath = patch[1];
@@ -120,19 +117,28 @@ BroccoliMergeTrees.prototype._applyPatch = function (patch) {
     var outputFilePath = this.outputPath + '/' + relativePath;
     var inputFilePath = entry && entry.basePath + '/' + relativePath;
 
-    this.debug('%o', {
-       operation: operation,
-       entry:entry
-    });
-
     switch(operation) {
-      case 'mkdir':     return this._applyMkdir(entry, inputFilePath, outputFilePath);
-      case 'rmdir':     return this._applyRmdir(entry, inputFilePath, outputFilePath);
-      case 'unlink':    return fs.unlinkSync(outputFilePath);
-      case 'create':    return symlinkOrCopySync(inputFilePath, outputFilePath);
-      case 'change':    return this._applyChange(entry, inputFilePath, outputFilePath);
+      case 'mkdir':     {
+        instrumentation.mkdir++;
+        return this._applyMkdir(entry, inputFilePath, outputFilePath);
+      }
+      case 'rmdir':   {
+        instrumentation.rmdir++;
+        return this._applyRmdir(entry, inputFilePath, outputFilePath);
+      }
+      case 'unlink':  {
+        instrumentation.unlink++;
+        return fs.unlinkSync(outputFilePath);
+      }
+      case 'create':    {
+        instrumentation.create++;
+        return symlinkOrCopySync(inputFilePath, outputFilePath);
+      }
+      case 'change':    {
+        instrumentation.change++;
+        return this._applyChange(entry, inputFilePath, outputFilePath);
+      }
     }
-
   }, this);
 };
 
@@ -331,4 +337,3 @@ function buildEntry(relativePath, basePath) {
   var stat = fs.statSync(basePath + '/' + relativePath);
   return new Entry(relativePath, basePath, stat.mode, stat.size, stat.mtime);
 }
-
