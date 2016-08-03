@@ -2,7 +2,7 @@ var fs = require('fs')
 var rimraf = require('rimraf');
 var Plugin = require('broccoli-plugin')
 var symlinkOrCopySync = require('symlink-or-copy').sync
-var debug = require('debug')
+var loggerGen = require('heimdalljs-logger');
 var FSTree = require('fs-tree-diff');
 var Entry = require('./entry');
 
@@ -44,7 +44,7 @@ function BroccoliMergeTrees(inputNodes, options) {
     annotation: options.annotation
   })
 
-  this._debug = debug(name);
+  this._logger = loggerGen(name);
 
   this.options = options
   this._buildCount = 0;
@@ -52,7 +52,7 @@ function BroccoliMergeTrees(inputNodes, options) {
 }
 
 BroccoliMergeTrees.prototype.debug = function(message, args) {
-  this._debug(message, args);
+  this._logger.info(message, args);
 }
 
 function isLinkStateEqual(entryA, entryB) {
@@ -76,6 +76,7 @@ function isEqual(entryA, entryB) {
 }
 
 BroccoliMergeTrees.prototype.build = function() {
+  this._logger.debug('deriving patches');
   var instrumentation = heimdall.start('derivePatches');
 
   var fileInfos = this._mergeRelativePath('');
@@ -96,9 +97,10 @@ BroccoliMergeTrees.prototype.build = function() {
   instrumentation = heimdall.start('applyPatches', ApplyPatchesSchema);
 
   try {
+    this._logger.debug('applying patches');
     this._applyPatch(patches, instrumentation.stats);
   } catch(e) {
-    heimdall.log('patch application failed, starting from scratch');
+    this._logger.warn('patch application failed, starting from scratch');
     // Whatever the failure, start again and do a complete build next time
     this._currentTree = FSTree.fromPaths([]);
     rimraf.sync(this.outputPath);

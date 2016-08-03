@@ -17,12 +17,12 @@
   "dependencies": {
     "broccoli-plugin": "^1.0.0",
     "can-symlink": "^1.0.0",
-    "debug": "^2.2.0",
     "fast-ordered-set": "^1.0.2",
-    "fs-tree-diff": "^0.5.0",
+    "fs-tree-diff": "^0.5.2",
+    "heimdalljs": "^0.2.1",
+    "heimdalljs-logger": "^0.1.7",
     "rimraf": "^2.4.3",
-    "symlink-or-copy": "^1.0.0",
-    "heimdalljs": "*"
+    "symlink-or-copy": "^1.0.0"
   },
   "devDependencies": {
     "broccoli-fixture": "^0.1.0",
