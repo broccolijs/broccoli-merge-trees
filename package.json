@@ -14,6 +14,10 @@
     "merge",
     "copy"
   ],
+  "files": [
+    "index.js",
+    "entry.js"
+  ],
   "dependencies": {
     "broccoli-plugin": "^1.0.0",
     "can-symlink": "^1.0.0",
