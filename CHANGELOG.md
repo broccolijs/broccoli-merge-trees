@@ -1,5 +1,9 @@
 # master
 
+# 1.1.3
+
+* Include only necessary files in npm package
+
 # 1.1.2
 
 * Update fs-tree-diff, fixes "rename only file in directory" bug, and possible performance improvements.
