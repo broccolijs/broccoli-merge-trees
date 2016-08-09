@@ -1,5 +1,9 @@
 # master
 
+# 1.1.4
+
+* Use heimdalljs for instrumentation and logging
+
 # 1.1.3
 
 * Include only necessary files in npm package
