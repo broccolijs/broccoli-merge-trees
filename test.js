@@ -49,6 +49,11 @@ describe('MergeTrees', function() {
     });
   });
 
+  it('merge of 1 tree is an identity', function() {
+    var foo = {};
+    expect(new MergeTrees([foo])).to.eql(foo);
+  });
+
   it('merges files', function() {
     return expect(mergeFixtures([
       {
@@ -61,7 +66,6 @@ describe('MergeTrees', function() {
       baz: '2'
     })
   })
-
 
   it('merges empty directories', function() {
     return expect(mergeFixtures([
