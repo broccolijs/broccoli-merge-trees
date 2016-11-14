@@ -33,6 +33,10 @@ module.exports = BroccoliMergeTrees
 BroccoliMergeTrees.prototype = Object.create(Plugin.prototype)
 BroccoliMergeTrees.prototype.constructor = BroccoliMergeTrees
 function BroccoliMergeTrees(inputNodes, options) {
+  if (Array.isArray(inputNodes) && inputNodes.length === 1) {
+    return inputNodes[0];
+  }
+
   if (!(this instanceof BroccoliMergeTrees)) return new BroccoliMergeTrees(inputNodes, options)
   options = options || {}
   var name = 'broccoli-merge-trees:' + (options.annotation || '')
