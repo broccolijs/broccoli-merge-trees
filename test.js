@@ -1,7 +1,14 @@
 var MergeTrees = require('./')
 var chai = require('chai'), expect = chai.expect
+var chaiFiles = require('chai-files'); chai.use(chaiFiles);
 var chaiAsPromised = require('chai-as-promised'); chai.use(chaiAsPromised)
 var Fixture = require('broccoli-fixture')
+
+var builder = require('broccoli-builder');
+var fixturify = require('fixturify');
+var fs = require('fs-extra');
+
+var file = chaiFiles.file;
 
 function mergeFixtures(inputFixtures, options) {
   return Fixture.build(new MergeTrees(inputFixtures.map(inputFixture), options))
@@ -46,6 +53,53 @@ describe('MergeTrees', function() {
         'foo/a.js',
         'foo/b.js',
       ]);
+    });
+  });
+
+  describe('rebuilds', function() {
+    var ROOT= __dirname + '/tmp/';
+    var ONE = __dirname + '/tmp/ONE';
+    var TWO = __dirname + '/tmp/TWO';
+    var pipeline;
+
+    beforeEach(function() {
+      fs.removeSync(ROOT);
+      fs.mkdirSync(ROOT);
+      fs.mkdirSync(ONE);
+      fs.mkdirSync(TWO);
+
+      var node = new MergeTrees([
+        ONE,
+        TWO
+      ]);
+
+      pipeline = new builder.Builder(node);
+    });
+
+    afterEach(function() {
+      fs.removeSync(ROOT);
+      return pipeline.cleanup();
+    });
+
+    it('handles synlink -> merge transitions', function() {
+      return pipeline.build().then(function() {
+        fixturify.writeSync(ONE,{
+          subdir: { file1: '' }
+        });
+
+        return pipeline.build();
+      }).then(function(results) {
+        expect(file(results.directory + '/subdir/file1')).to.exist;
+
+        fixturify.writeSync(TWO,{
+          subdir: { file2: '' }
+        });
+
+        return pipeline.build();
+      }).then(function(results) {
+        expect(file(results.directory + '/subdir/file1')).to.exist;
+        expect(file(results.directory + '/subdir/file2')).to.exist;
+      });
     });
   });
 

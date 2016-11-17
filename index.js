@@ -111,6 +111,7 @@ BroccoliMergeTrees.prototype.build = function() {
 }
 
 BroccoliMergeTrees.prototype._applyPatch = function (patch, instrumentation) {
+
   patch.forEach(function(patch) {
     var operation = patch[0];
     var relativePath = patch[1];
@@ -172,7 +173,9 @@ BroccoliMergeTrees.prototype._applyChange = function (entry, inputFilePath, outp
       // we don't check for `canSymlink` here because that is handled in
       // `isLinkStateEqual`.  If symlinking is not supported we will not get
       // directory change operations
-      return fs.unlinkSync(outputFilePath);
+      fs.unlinkSync(outputFilePath);
+      fs.mkdirSync(outputFilePath);
+      return
     }
   } else {
     // file changed
