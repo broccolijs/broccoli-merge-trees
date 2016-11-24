@@ -41,6 +41,7 @@ function BroccoliMergeTrees(inputNodes, options) {
   }
   Plugin.call(this, inputNodes, {
     persistentOutput: true,
+    needsPath: false,
     annotation: options.annotation
   })
 
