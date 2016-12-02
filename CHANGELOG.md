@@ -1,5 +1,9 @@
 # master
 
+# 1.2.1
+
+* Fix typo with cache directory opt-out.
+
 # 1.2.0
 
 * Opt out of cache directory creation.
