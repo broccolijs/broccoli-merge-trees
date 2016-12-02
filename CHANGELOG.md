@@ -1,5 +1,9 @@
 # master
 
+# 1.2.0
+
+* Opt out of cache directory creation.
+
 # 1.1.4
 
 * Use heimdalljs for instrumentation and logging
