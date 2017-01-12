@@ -42,7 +42,34 @@ function BroccoliMergeTrees(inputNodes, options) {
   this.options = options
   this._buildCount = 0;
   this._currentTree = FSTree.fromPaths([]);
+  this._in = this._out = undefined;
 }
+
+// should be moved to broccoli-plugin
+Object.defineProperty(BroccoliMergeTrees.prototype, 'in', {
+  get() {
+    if (this._in) { return this._in; }
+
+    this._in = (new FSMergeTree({
+      roots: this.inputPaths,
+    }));
+
+    return this._in;
+  }
+});
+
+// should be moved to broccoli-plugin
+Object.defineProperty(BroccoliMergeTrees.prototype, 'out', {
+  get() {
+    if (this._out) { return this._out; }
+
+    this._out = (new FSTree({
+      root: this.outputPath
+    }));
+
+    return this._out;
+  }
+});
 
 BroccoliMergeTrees.prototype.debug = function(message, args) {
   this._logger.info(message, args);
@@ -69,13 +96,8 @@ function isEqual(entryA, entryB) {
 }
 
 BroccoliMergeTrees.prototype.build = function() {
-  this.in = this.in || new FSMergeTree({
-    roots: this.inputPaths,
-  });
-  this.out = this.out || new FSTree({
-    root: this.outputPath
-  });
-
+  // should be moved to broccoli-plugin
+  this._in = undefined; // reset in (for now)
   this.out.start();
 
   this._logger.debug('deriving patches');
@@ -110,6 +132,8 @@ BroccoliMergeTrees.prototype.build = function() {
   }
 
   instrumentation.stop();
+
+  // should be moved to broccoli-plugin
   this.out.stop();
 }
 
@@ -169,7 +193,6 @@ BroccoliMergeTrees.prototype._applyChange = function (entry, inputFilePath, outp
       // directory copied -> link
       this.out.rmdirSync(outputFilePath);
       this.out.symlinkSync(inputFilePath, outputFilePath);
-      return;
     } else {
       // directory link -> copied
       //
@@ -178,13 +201,12 @@ BroccoliMergeTrees.prototype._applyChange = function (entry, inputFilePath, outp
       // directory change operations
       this.out.unlinkSync(outputFilePath);
       this.out.mkdirSync(outputFilePath);
-      return;
+      return
     }
   } else {
     // file changed
     this.out.unlinkSync(outputFilePath);
-    this.out.symlinkSync(inputFilePath, outputFilePath);
-    return;
+    return this.out.symlinkSync(inputFilePath, outputFilePath);
   }
 }
 
@@ -198,13 +220,13 @@ BroccoliMergeTrees.prototype._mergeRelativePath = function (baseDir, possibleInd
   var i, j, fileName, fullPath, subEntries;
 
   // Array of readdir arrays
-  var names = inputPaths.map(function (inputPath, i) {
+  var names = inputPaths.map((inputPath, i) => {
     if (possibleIndices == null || possibleIndices.indexOf(i) !== -1) {
-      return fs.readdirSync(inputPath + '/' + baseDir).sort()
+      return this.in[i].readdirSync(baseDir).sort()
     } else {
       return []
     }
-  })
+  });
 
   // Guard against conflicting capitalizations
   var lowerCaseNames = {}
