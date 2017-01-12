@@ -1,9 +1,9 @@
 var fs = require('fs')
 var rimraf = require('rimraf');
 var Plugin = require('broccoli-plugin')
-var symlinkOrCopySync = require('symlink-or-copy').sync
 var loggerGen = require('heimdalljs-logger');
 var FSTree = require('fs-tree-diff');
+var FSMergeTree = require('fs-tree-diff/lib/fs-merge-tree');
 var Entry = require('./entry');
 
 var heimdall = require('heimdalljs');
@@ -19,14 +19,6 @@ function ApplyPatchesSchema() {
   this.other = 0;
   this.processed = 0;
   this.linked = 0;
-}
-
-function unlinkOrRmrfSync(path) {
-  if (canSymlink) {
-    fs.unlinkSync(path);
-  } else {
-    rimraf.sync(path);
-  }
 }
 
 module.exports = BroccoliMergeTrees
@@ -77,6 +69,15 @@ function isEqual(entryA, entryB) {
 }
 
 BroccoliMergeTrees.prototype.build = function() {
+  this.in = this.in || new FSMergeTree({
+    roots: this.inputPaths,
+  });
+  this.out = this.out || new FSTree({
+    root: this.outputPath
+  });
+
+  this.out.start();
+
   this._logger.debug('deriving patches');
   var instrumentation = heimdall.start('derivePatches');
 
@@ -109,6 +110,7 @@ BroccoliMergeTrees.prototype.build = function() {
   }
 
   instrumentation.stop();
+  this.out.stop();
 }
 
 BroccoliMergeTrees.prototype._applyPatch = function (patch, instrumentation) {
@@ -118,29 +120,28 @@ BroccoliMergeTrees.prototype._applyPatch = function (patch, instrumentation) {
     var relativePath = patch[1];
     var entry = patch[2];
 
-    var outputFilePath = this.outputPath + '/' + relativePath;
     var inputFilePath = entry && entry.basePath + '/' + relativePath;
 
     switch(operation) {
       case 'mkdir':     {
         instrumentation.mkdir++;
-        return this._applyMkdir(entry, inputFilePath, outputFilePath);
+        return this._applyMkdir(entry, inputFilePath, relativePath);
       }
       case 'rmdir':   {
         instrumentation.rmdir++;
-        return this._applyRmdir(entry, inputFilePath, outputFilePath);
+        return this._applyRmdir(entry, inputFilePath, relativePath);
       }
       case 'unlink':  {
         instrumentation.unlink++;
-        return fs.unlinkSync(outputFilePath);
+        return this.out.unlinkSync(relativePath);
       }
       case 'create':    {
         instrumentation.create++;
-        return symlinkOrCopySync(inputFilePath, outputFilePath);
+        return this.out.symlinkSync(inputFilePath, relativePath);
       }
       case 'change':    {
         instrumentation.change++;
-        return this._applyChange(entry, inputFilePath, outputFilePath);
+        return this._applyChange(entry, inputFilePath, relativePath);
       }
     }
   }, this);
@@ -148,17 +149,17 @@ BroccoliMergeTrees.prototype._applyPatch = function (patch, instrumentation) {
 
 BroccoliMergeTrees.prototype._applyMkdir = function (entry, inputFilePath, outputFilePath) {
   if (entry.linkDir) {
-    return symlinkOrCopySync(inputFilePath, outputFilePath);
+    return this.out.symlinkSync(inputFilePath, outputFilePath);
   } else {
-    return fs.mkdirSync(outputFilePath);
+    return this.out.mkdirSync(outputFilePath);
   }
 }
 
 BroccoliMergeTrees.prototype._applyRmdir = function (entry, inputFilePath, outputFilePath) {
   if (entry.linkDir) {
-    return unlinkOrRmrfSync(outputFilePath);
+    return this.out.unlinkSync(outputFilePath);
   } else {
-    return fs.rmdirSync(outputFilePath);
+    return this.out.rmdirSync(outputFilePath);
   }
 }
 
@@ -166,22 +167,24 @@ BroccoliMergeTrees.prototype._applyChange = function (entry, inputFilePath, outp
   if (entry.isDirectory()) {
     if (entry.linkDir) {
       // directory copied -> link
-      fs.rmdirSync(outputFilePath);
-      return symlinkOrCopySync(inputFilePath, outputFilePath);
+      this.out.rmdirSync(outputFilePath);
+      this.out.symlinkSync(inputFilePath, outputFilePath);
+      return;
     } else {
       // directory link -> copied
       //
       // we don't check for `canSymlink` here because that is handled in
       // `isLinkStateEqual`.  If symlinking is not supported we will not get
       // directory change operations
-      fs.unlinkSync(outputFilePath);
-      fs.mkdirSync(outputFilePath);
-      return
+      this.out.unlinkSync(outputFilePath);
+      this.out.mkdirSync(outputFilePath);
+      return;
     }
   } else {
     // file changed
-    fs.unlinkSync(outputFilePath);
-    return symlinkOrCopySync(inputFilePath, outputFilePath);
+    this.out.unlinkSync(outputFilePath);
+    this.out.symlinkSync(inputFilePath, outputFilePath);
+    return;
   }
 }
 
