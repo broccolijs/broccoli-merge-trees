@@ -49,7 +49,7 @@ describe('MergeTrees', function() {
       var entries = mapBy(fileInfos, 'entry');
 
       expect(mapBy(entries, 'relativePath')).to.deep.equal([
-        'foo',
+        'foo/',
         'foo/a.js',
         'foo/b.js',
       ]);

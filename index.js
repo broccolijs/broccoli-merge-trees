@@ -1,10 +1,8 @@
-var fs = require('fs')
 var rimraf = require('rimraf');
 var Plugin = require('broccoli-plugin')
 var loggerGen = require('heimdalljs-logger');
 var FSTree = require('fs-tree-diff');
 var FSMergeTree = require('fs-tree-diff/lib/fs-merge-tree');
-var Entry = require('./entry');
 
 var heimdall = require('heimdalljs');
 var canSymlink = require('can-symlink')();
@@ -211,18 +209,16 @@ BroccoliMergeTrees.prototype._applyChange = function (entry, inputFilePath, outp
 }
 
 BroccoliMergeTrees.prototype._mergeRelativePath = function (baseDir, possibleIndices) {
-  var inputPaths = this.inputPaths;
   var overwrite = this.options.overwrite;
   var result = [];
   var isBaseCase = (possibleIndices === undefined);
 
   // baseDir has a trailing path.sep if non-empty
-  var i, j, fileName, fullPath, subEntries;
+  var i, j, fileName, subEntries;
 
-  // Array of readdir arrays
-  var names = inputPaths.map((inputPath, i) => {
-    if (possibleIndices == null || possibleIndices.indexOf(i) !== -1) {
-      return this.in[i].readdirSync(baseDir).sort()
+  var names = this.in.map((tree, index) => {
+    if (possibleIndices == null || possibleIndices.indexOf(index) !== -1) {
+      return tree.readdirSync(baseDir).sort()
     } else {
       return []
     }
@@ -230,7 +226,7 @@ BroccoliMergeTrees.prototype._mergeRelativePath = function (baseDir, possibleInd
 
   // Guard against conflicting capitalizations
   var lowerCaseNames = {}
-  for (i = 0; i < this.inputPaths.length; i++) {
+  for (i = 0; i < this.in.length; i++) {
     for (j = 0; j < names[i].length; j++) {
       fileName = names[i][j]
       var lowerCaseName = fileName.toLowerCase()
@@ -264,16 +260,17 @@ BroccoliMergeTrees.prototype._mergeRelativePath = function (baseDir, possibleInd
   // Accumulate fileInfo hashes of { isDirectory, indices }.
   // Also guard against conflicting file types and overwriting.
   var fileInfo = {}
-  var inputPath;
+  var tree;
   var infoHash;
 
-  for (i = 0; i < inputPaths.length; i++) {
-    inputPath = inputPaths[i];
+  for (i = 0; i < this.in.length; i++) {
+    tree = this.in[i];
     for (j = 0; j < names[i].length; j++) {
       fileName = names[i][j]
 
-      // TODO: walk backwards to skip stating files we will just drop anyways
-      var entry = buildEntry(baseDir + fileName, inputPath);
+      var entry = tree.statSync(baseDir + fileName);
+      entry.basePath = tree.root;
+
       var isDirectory = entry.isDirectory();
 
       if (fileInfo[fileName] == null) {
@@ -312,10 +309,9 @@ BroccoliMergeTrees.prototype._mergeRelativePath = function (baseDir, possibleInd
   }
 
   // Done guarding against all error conditions. Actually merge now.
-  for (i = 0; i < this.inputPaths.length; i++) {
+  for (i = 0; i < this.in.length; i++) {
     for (j = 0; j < names[i].length; j++) {
       fileName = names[i][j]
-      fullPath = this.inputPaths[i] + '/' + baseDir + fileName
       infoHash = fileInfo[fileName]
 
       if (infoHash.isDirectory) {
@@ -363,8 +359,3 @@ BroccoliMergeTrees.prototype._mergeRelativePath = function (baseDir, possibleInd
     return result;
   }
 };
-
-function buildEntry(relativePath, basePath) {
-  var stat = fs.statSync(basePath + '/' + relativePath);
-  return new Entry(relativePath, basePath, stat.mode, stat.size, stat.mtime);
-}
