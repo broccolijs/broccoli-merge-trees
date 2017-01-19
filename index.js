@@ -2,7 +2,6 @@ var rimraf = require('rimraf');
 var Plugin = require('broccoli-plugin')
 var loggerGen = require('heimdalljs-logger');
 var FSTree = require('fs-tree-diff');
-var FSMergeTree = require('fs-tree-diff/lib/fs-merge-tree');
 
 var heimdall = require('heimdalljs');
 var canSymlink = require('can-symlink')();
@@ -32,6 +31,7 @@ function BroccoliMergeTrees(inputNodes, options) {
   Plugin.call(this, inputNodes, {
     persistentOutput: true,
     needsCache: false,
+    fsFacade: true,
     annotation: options.annotation
   })
 
@@ -40,34 +40,7 @@ function BroccoliMergeTrees(inputNodes, options) {
   this.options = options
   this._buildCount = 0;
   this._currentTree = FSTree.fromPaths([]);
-  this._in = this._out = undefined;
 }
-
-// should be moved to broccoli-plugin
-Object.defineProperty(BroccoliMergeTrees.prototype, 'in', {
-  get() {
-    if (this._in) { return this._in; }
-
-    this._in = (new FSMergeTree({
-      roots: this.inputPaths,
-    }));
-
-    return this._in;
-  }
-});
-
-// should be moved to broccoli-plugin
-Object.defineProperty(BroccoliMergeTrees.prototype, 'out', {
-  get() {
-    if (this._out) { return this._out; }
-
-    this._out = (new FSTree({
-      root: this.outputPath
-    }));
-
-    return this._out;
-  }
-});
 
 BroccoliMergeTrees.prototype.debug = function(message, args) {
   this._logger.info(message, args);
@@ -94,10 +67,6 @@ function isEqual(entryA, entryB) {
 }
 
 BroccoliMergeTrees.prototype.build = function() {
-  // should be moved to broccoli-plugin
-  this._in = undefined; // reset in (for now)
-  this.out.start();
-
   this._logger.debug('deriving patches');
   var instrumentation = heimdall.start('derivePatches');
 
@@ -130,9 +99,6 @@ BroccoliMergeTrees.prototype.build = function() {
   }
 
   instrumentation.stop();
-
-  // should be moved to broccoli-plugin
-  this.out.stop();
 }
 
 BroccoliMergeTrees.prototype._applyPatch = function (patch, instrumentation) {
