@@ -3,8 +3,6 @@ var chai = require('chai'), expect = chai.expect
 var chaiFiles = require('chai-files'); chai.use(chaiFiles);
 var chaiAsPromised = require('chai-as-promised'); chai.use(chaiAsPromised)
 var Fixture = require('broccoli-fixture')
-const FSTree = require('fs-tree-diff');
-const FSMergeTree = require('fs-tree-diff/lib/fs-merge-tree');
 
 var builder = require('broccoli-builder');
 var fixturify = require('fixturify');
@@ -20,53 +18,8 @@ function inputFixture(obj) {
   return new Fixture.Node(obj)
 }
 
-function mapBy(array, property) {
-  return array.map(function (item) {
-    return item[property];
-  });
-}
 
 describe('MergeTrees', function() {
-  describe('_mergeRelativePaths', function() {
-    it('returns an array of file infos', function() {
-      var mergeTrees = new MergeTrees([]);
-      mergeTrees.in = new FSMergeTree({
-        inputs: [`${__dirname}/tests/fixtures/a`],
-      });
-      mergeTrees.out = new FSTree({
-        root: `${__dirname}/tmp/output`,
-      });
-
-      var fileInfos = mergeTrees._mergeRelativePath('');
-      var entries = mapBy(fileInfos, 'entry');
-
-      expect(mapBy(entries, 'relativePath')).to.deep.equal([
-        'bar.js',
-        'foo.js',
-      ]);
-    });
-
-    it('sorts its return value', function() {
-      var mergeTrees = new MergeTrees([]);
-      mergeTrees.in = new FSMergeTree({
-        inputs: [ `${__dirname}/tests/fixtures/b/input0`,
-                  `${__dirname}/tests/fixtures/b/input1`],
-      });
-      mergeTrees.out = new FSTree({
-        root: `${__dirname}/tmp/output`,
-      });
-
-      var fileInfos = mergeTrees._mergeRelativePath('');
-      var entries = mapBy(fileInfos, 'entry');
-
-      expect(mapBy(entries, 'relativePath')).to.deep.equal([
-        'foo/',
-        'foo/a.js',
-        'foo/b.js',
-      ]);
-    });
-  });
-
   describe('rebuilds', function() {
     var ROOT= __dirname + '/tmp/';
     var ONE = __dirname + '/tmp/ONE';

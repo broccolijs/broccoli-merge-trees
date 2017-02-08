@@ -70,20 +70,29 @@ BroccoliMergeTrees.prototype.build = function() {
   this._logger.debug('deriving patches');
   var instrumentation = heimdall.start('derivePatches');
 
-  var fileInfos = this._mergeRelativePath('');
-  var entries = fileInfos.map(function(fileInfo) {
-    return fileInfo.entry;
-  });
+  var useChangeTracking = true;
+  var patches = [];
 
-  var newTree = FSTree.fromEntries(entries);
-  var patches = this._currentTree.calculatePatch(newTree, isEqual);
+  if (useChangeTracking) {
+    patches = this.in.changes(this.options);
+
+  } else {
+
+    var fileInfos = this._mergeRelativePath('');
+    var entries = fileInfos.map(function(fileInfo) {
+      return fileInfo.entry;
+    });
+    var newTree = FSTree.fromEntries(entries);
+    patches = this._currentTree.calculatePatch(newTree, isEqual);
+    this._currentTree = newTree;
+    instrumentation.stats.entries = entries.length;
+  }
 
   instrumentation.stats.patches = patches.length;
-  instrumentation.stats.entries = entries.length;
 
   instrumentation.stop();
 
-  this._currentTree = newTree;
+
 
   instrumentation = heimdall.start('applyPatches', ApplyPatchesSchema);
 
@@ -102,7 +111,6 @@ BroccoliMergeTrees.prototype.build = function() {
 }
 
 BroccoliMergeTrees.prototype._applyPatch = function (patch, instrumentation) {
-
   patch.forEach(function(patch) {
     var operation = patch[0];
     var relativePath = patch[1];
