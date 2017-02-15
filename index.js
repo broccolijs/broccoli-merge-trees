@@ -69,15 +69,13 @@ function isEqual(entryA, entryB) {
 BroccoliMergeTrees.prototype.build = function() {
   this._logger.debug('deriving patches');
   var instrumentation = heimdall.start('derivePatches');
-
-  var useChangeTracking = true;
   var patches = [];
 
-  if (useChangeTracking) {
+  if (this._fsFacade) {
+    //Using change tracking
     patches = this.in.changes(this.options);
-
   } else {
-
+    //Should remove the below code later
     var fileInfos = this._mergeRelativePath('');
     var entries = fileInfos.map(function(fileInfo) {
       return fileInfo.entry;
@@ -89,11 +87,7 @@ BroccoliMergeTrees.prototype.build = function() {
   }
 
   instrumentation.stats.patches = patches.length;
-
   instrumentation.stop();
-
-
-
   instrumentation = heimdall.start('applyPatches', ApplyPatchesSchema);
 
   try {
