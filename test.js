@@ -81,7 +81,7 @@ describe('MergeTrees', function() {
       return pipeline.cleanup();
     });
 
-    it('handles synlink -> merge transitions', function() {
+    it('handles symlink -> merge transitions', function() {
       return pipeline.build().then(function() {
         fixturify.writeSync(ONE,{
           subdir: { file1: '' }
