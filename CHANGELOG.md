@@ -1,5 +1,7 @@
 # master
 
+* Extract logic into node-merge-trees package
+
 # 1.2.1
 
 * Fix typo with cache directory opt-out.
