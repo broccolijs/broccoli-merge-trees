@@ -1,5 +1,7 @@
 # master
 
+* Bump merge-trees dependency for Node 4 compatibility
+
 # 1.2.2
 
 * Extract logic into node-merge-trees package

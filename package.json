@@ -19,7 +19,7 @@
   ],
   "dependencies": {
     "broccoli-plugin": "^1.3.0",
-    "merge-trees": "^1.0.0"
+    "merge-trees": "^1.0.1"
   },
   "devDependencies": {
     "broccoli-fixture": "^0.1.0",
