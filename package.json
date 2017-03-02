@@ -1,7 +1,7 @@
 {
   "name": "broccoli-merge-trees",
   "description": "Broccoli plugin to merge multiple trees into one",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "author": "Jo Liss <joliss42@gmail.com>",
   "main": "index.js",
   "license": "MIT",
