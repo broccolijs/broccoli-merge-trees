@@ -1,3 +1,5 @@
+'use strict';
+
 var Plugin = require('broccoli-plugin');
 var MergeTrees = require('merge-trees');
 

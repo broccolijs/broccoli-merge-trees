@@ -1,3 +1,5 @@
+'use strict';
+
 var MergeTrees = require('./');
 var chai = require('chai'), expect = chai.expect;
 var chaiAsPromised = require('chai-as-promised'); chai.use(chaiAsPromised);
