@@ -1,5 +1,7 @@
 # master
 
+# 1.2.3
+
 * Bump merge-trees dependency for Node 4 compatibility
 
 # 1.2.2
