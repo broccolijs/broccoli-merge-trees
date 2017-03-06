@@ -1,5 +1,7 @@
 # master
 
+# 2.0.0
+
 * Require Node >= 4
 
 # 1.2.4
