@@ -1,5 +1,7 @@
 # master
 
+* Require Node >= 4
+
 # 1.2.4
 
 * Revert to version 1.2.1 to restore Node 0.10 compatibility
