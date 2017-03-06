@@ -1,5 +1,7 @@
 # master
 
+* Revert to version 1.2.1 to restore Node 0.10 compatibility
+
 # 1.2.3
 
 * Bump merge-trees dependency for Node 4 compatibility
