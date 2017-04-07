@@ -85,9 +85,6 @@ BroccoliMergeTrees.prototype.build = function() {
     this._currentTree = newTree;
   }
 
-  console.log("----patches from mergetrees");
-  console.log(patches);
-
   instrumentation.stats.patches = patches.length;
   instrumentation.stop();
   instrumentation = heimdall.start('applyPatches', ApplyPatchesSchema);
@@ -133,7 +130,6 @@ BroccoliMergeTrees.prototype._applyPatch = function (patch, instrumentation) {
       case 'create':    {
         instrumentation.create++;
         return this.out.symlinkSync(inputFilePath, relativePath);
-       // return this.out.symlinkSyncFromInput(entry._projection, inputFilePath, relativePath);
       }
       case 'change':    {
         instrumentation.change++;
@@ -145,7 +141,7 @@ BroccoliMergeTrees.prototype._applyPatch = function (patch, instrumentation) {
 
 BroccoliMergeTrees.prototype._applyMkdir = function (entry, inputFilePath, outputFilePath) {
   if (entry.linkDir) {
-    return this.out.symlinkSyncFromInput(entry._projection, inputFilePath, outputFilePath);
+    return this.out.symlinkSyncFromEntry(entry._projection.tree, inputFilePath, outputFilePath);
   } else {
     return this.out.mkdirSync(outputFilePath);
   }
@@ -165,7 +161,6 @@ BroccoliMergeTrees.prototype._applyChange = function (entry, inputFilePath, outp
       // directory copied -> link
       this.out.rmdirSync(outputFilePath);
       this.out.symlinkSync(inputFilePath, outputFilePath);
-     // this.out.symlinkSyncFromInput(entry._projection, inputFilePath, outputFilePath);
     } else {
       // directory link -> copied
       //
@@ -180,7 +175,6 @@ BroccoliMergeTrees.prototype._applyChange = function (entry, inputFilePath, outp
     // file changed
     this.out.unlinkSync(outputFilePath);
     return this.out.symlinkSync(inputFilePath, outputFilePath);
-   // return this.out.symlinkSyncFromInput(entry._projection, inputFilePath, outputFilePath);
 
   }
 }
