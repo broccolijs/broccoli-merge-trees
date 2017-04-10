@@ -41,8 +41,8 @@ describe('MergeTrees', function() {
     });
 
     afterEach(function() {
-      fs.removeSync(ROOT);
-      return pipeline.cleanup();
+    //  fs.removeSync(ROOT);
+     // return pipeline.cleanup();
     });
 
     it('handles synlink -> merge transitions', function() {

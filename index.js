@@ -105,9 +105,7 @@ BroccoliMergeTrees.prototype.build = function() {
 
 BroccoliMergeTrees.prototype._applyPatch = function (patch, instrumentation) {
 
-
   patch.forEach(function(patch) {
-
     var operation = patch[0];
     var relativePath = patch[1];
     var entry = patch[2];
@@ -117,7 +115,7 @@ BroccoliMergeTrees.prototype._applyPatch = function (patch, instrumentation) {
     switch(operation) {
       case 'mkdir':     {
         instrumentation.mkdir++;
-        return this._applyMkdir(entry, inputFilePath, relativePath);
+        return this._applyMkdir(entry, relativePath, relativePath);
       }
       case 'rmdir':   {
         instrumentation.rmdir++;
@@ -139,9 +137,9 @@ BroccoliMergeTrees.prototype._applyPatch = function (patch, instrumentation) {
   }, this);
 };
 
-BroccoliMergeTrees.prototype._applyMkdir = function (entry, inputFilePath, outputFilePath) {
+BroccoliMergeTrees.prototype._applyMkdir = function (entry, inputRelativePath, outputFilePath) {
   if (entry.linkDir) {
-    return this.out.symlinkSyncFromEntry(entry._projection.tree, inputFilePath, outputFilePath);
+    return this.out.symlinkSyncFromEntry(entry._projection.tree, inputRelativePath, outputFilePath);
   } else {
     return this.out.mkdirSync(outputFilePath);
   }
