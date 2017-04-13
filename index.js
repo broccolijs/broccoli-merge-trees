@@ -1,11 +1,13 @@
-var rimraf = require('rimraf');
-var Plugin = require('broccoli-plugin')
-var loggerGen = require('heimdalljs-logger');
-var FSTree = require('fs-tree-diff');
+const rimraf = require('rimraf');
+const Plugin = require('broccoli-plugin')
+const loggerGen = require('heimdalljs-logger');
+const FSTree = require('fs-tree-diff');
+const Entry = require('fs-tree-diff/lib/entry');
+const isDirectory = Entry.isDirectory;
 
-var heimdall = require('heimdalljs');
-var canSymlink = require('can-symlink')();
-var defaultIsEqual = FSTree.defaultIsEqual;
+const heimdall = require('heimdalljs');
+const canSymlink = require('can-symlink')();
+const defaultIsEqual = FSTree.defaultIsEqual;
 
 function ApplyPatchesSchema() {
   this.mkdir = 0;
@@ -76,6 +78,7 @@ BroccoliMergeTrees.prototype.build = function() {
     patches = this.in.changes(this.options);
   } else {
     //Should remove the below code later
+
     var fileInfos = this._mergeRelativePath('');
     var entries = fileInfos.map(function(fileInfo) {
       return fileInfo.entry;
@@ -84,6 +87,9 @@ BroccoliMergeTrees.prototype.build = function() {
     patches = this._currentTree.calculatePatch(newTree, isEqual);
     this._currentTree = newTree;
   }
+
+  console.log("patches from merge ");
+  console.log(patches);
 
   instrumentation.stats.patches = patches.length;
   instrumentation.stop();
@@ -110,7 +116,8 @@ BroccoliMergeTrees.prototype._applyPatch = function (patch, instrumentation) {
     var relativePath = patch[1];
     var entry = patch[2];
 
-    var inputFilePath = entry && entry.basePath + '/' + relativePath;
+    //var inputFilePath = entry && entry.basePath + '/' + relativePath;
+    var inputFilePath = entry && entry.absolutePath;
 
     switch(operation) {
       case 'mkdir':     {
@@ -139,6 +146,7 @@ BroccoliMergeTrees.prototype._applyPatch = function (patch, instrumentation) {
 
 BroccoliMergeTrees.prototype._applyMkdir = function (entry, inputRelativePath, outputFilePath) {
   if (entry.linkDir) {
+    inputRelativePath = entry._projection.entry.relativePath;
     return this.out.symlinkSyncFromEntry(entry._projection.tree, inputRelativePath, outputFilePath);
   } else {
     return this.out.mkdirSync(outputFilePath);
@@ -154,9 +162,12 @@ BroccoliMergeTrees.prototype._applyRmdir = function (entry, inputFilePath, outpu
 }
 
 BroccoliMergeTrees.prototype._applyChange = function (entry, inputFilePath, outputFilePath) {
-  if (entry.isDirectory()) {
+  //if (entry.isDirectory()) {
+  if (isDirectory(entry)) {
     if (entry.linkDir) {
       // directory copied -> link
+      inputFilePath = entry._projection.entry.relativePath;
+
       this.out.rmdirSync(outputFilePath);
       this.out.symlinkSync(inputFilePath, outputFilePath);
     } else {
