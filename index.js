@@ -47,15 +47,8 @@ BroccoliMergeTrees.prototype.debug = function(message, args) {
 
 BroccoliMergeTrees.prototype.build = function() {
   this._logger.debug('deriving patches');
-  var instrumentation = heimdall.start('derivePatches - broccoli-merge-trees');
-  var patches = [];
-
-  if (this._fsFacade) {
-    //Using change tracking
-    patches = this.in.changes(this.options);
-  } else {
-    throw new Error('why isn\'t fsFacade true?');
-  }
+  let instrumentation = heimdall.start('derivePatches - broccoli-merge-trees');
+  const patches = this.in.changes(this.options);
 
   console.log('----------------patches from merge ');
   patches.forEach(patch => {
@@ -73,7 +66,7 @@ BroccoliMergeTrees.prototype.build = function() {
     this._logger.warn('patch application failed, starting from scratch');
     // Whatever the failure, start again and do a complete build next time
     this._currentTree = FSTree.fromPaths([]);
-    rimraf.sync(this.outputPath);
+    this.out.emptySync('');
     throw e;
   }
 
@@ -86,11 +79,12 @@ function chompPathSep(path) {
 }
 
 
-BroccoliMergeTrees.prototype._applyPatch = function (patch, instrumentation) {
-  patch.forEach(function(patch) {
-    var operation = patch[0];
-    var relativePath = patch[1];
-    var entry = patch[2];
+BroccoliMergeTrees.prototype._applyPatch = function(patch, instrumentation) {
+  patch.forEach(function(change) {
+    patch;
+    var operation = change[0];
+    var relativePath = change[1];
+    var entry = change[2];
     const inputFilePath = entry.tree.resolvePath(entry.relativePath);
 
     switch(operation) {
