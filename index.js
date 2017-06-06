@@ -49,7 +49,9 @@ BroccoliMergeTrees.prototype.build = function() {
   this._logger.debug('deriving patches');
   let instrumentation = heimdall.start('derivePatches - broccoli-merge-trees');
   const patches = this.in.changes(this.options);
-
+  if (this._shouldDebug && patches.some(change => change[1].endsWith('app.js'))) debugger;
+  this._shouldDebug = true;
+  
   console.log('----------------patches from merge ');
   patches.forEach(patch => {
     console.log(patch[0] + ' ' + chompPathSep(patch[1]));
@@ -80,6 +82,8 @@ function chompPathSep(path) {
 
 
 BroccoliMergeTrees.prototype._applyPatch = function(patch, instrumentation) {
+
+
   patch.forEach(function(change) {
     patch;
     var operation = change[0];
@@ -133,7 +137,8 @@ BroccoliMergeTrees.prototype._applyChange = function (entry, inputFilePath, outp
     if (entry.linkDir) {
       // directory copied -> link
       this.out.rmdirSync(outputRelativePath);
-      this.out.symlinkSync(inputFilePath, outputRelativePath);
+      this.out.symlinkSyncFromEntry(entry.tree, inputFilePath, outputRelativePath);
+      //this.out.symlinkSync(inputFilePath, outputRelativePath);
     } else {
       // directory link -> copied
       this.out.unlinkSync(outputRelativePath);
