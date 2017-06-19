@@ -49,10 +49,14 @@ BroccoliMergeTrees.prototype.build = function() {
   let instrumentation = heimdall.start('derivePatches - broccoli-merge-trees');
   const patches = this.in.changes(this.options);
 
+
   console.log(`----------------patches from ${this._name + (this._annotation != null ? ' (' + this._annotation + ')' : '')}`);
   patches.forEach(patch => {
     console.log(patch[0] + ' ' + chompPathSep(patch[1]));
   });
+
+  if (patches.some(change => change[1].endsWith("engines-dist/jobs-ext/assets/img"))) debugger;
+
 
   instrumentation.stats.patches = patches.length;
   instrumentation.stop();
