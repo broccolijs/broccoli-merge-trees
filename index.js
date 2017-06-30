@@ -1,7 +1,47 @@
 'use strict';
 
 var Plugin = require('broccoli-plugin');
-var MergeTrees = require('merge-trees');
+var _MergeTrees = require('merge-trees');
+
+class MergeTrees extends _MergeTrees {
+  constructor(inputPaths, outputPath, options) {
+    super(inputPaths, outputPath, options);
+
+    this._symlinks = new Set();
+    this.hadPatches = false;
+  }
+
+  _applyPatch(patches, instrumentation) {
+    super._applyPatch(patches, instrumentation);
+
+    for (let patch of patches) {
+      let operation = patch[0];
+      let relativePath = patch[1];
+      let entry = patch[2];
+
+      // skip any entries that are not symlinks
+      if (!entry.linkDir) { continue; }
+
+      switch (operation) {
+      case 'rmdir':
+      case 'unlink':
+        this._symlinks.delete(relativePath);
+        break;
+
+      case 'create':
+      case 'mkdir':
+        this._symlinks.add(relativePath);
+        break;
+      }
+    }
+
+    this.hadPatches = patches.length > 0;
+  }
+
+  get hasDirectorySymlinks() {
+    return this._symlinks.size > 0;
+  }
+}
 
 module.exports = BroccoliMergeTrees;
 BroccoliMergeTrees.prototype = Object.create(Plugin.prototype);
@@ -16,7 +56,8 @@ function BroccoliMergeTrees(inputNodes, options) {
   Plugin.call(this, inputNodes, {
     persistentOutput: true,
     needsCache: false,
-    annotation: options.annotation
+    annotation: options.annotation,
+    sideEffectFree: true
   });
   this.options = options;
 }
@@ -32,4 +73,8 @@ BroccoliMergeTrees.prototype.build = function() {
   }
 
   this.mergeTrees.merge();
+
+  if (this.mergeTrees.hasDirectorySymlinks || this.mergeTrees.hadPatches) {
+    this.revised();
+  }
 };
