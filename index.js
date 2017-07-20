@@ -1,11 +1,9 @@
-var rimraf = require('rimraf');
-var Plugin = require('broccoli-plugin')
-var loggerGen = require('heimdalljs-logger');
-var FSTree = require('fs-tree-diff');
-
-var heimdall = require('heimdalljs');
-var canSymlink = require('can-symlink')();
-var defaultIsEqual = FSTree.defaultIsEqual;
+const Plugin = require('broccoli-plugin')
+const loggerGen = require('heimdalljs-logger');
+const FSTree = require('fs-tree-diff');
+const Entry = require('fs-tree-diff/lib/entry');
+const isDirectory = Entry.isDirectory;
+const heimdall = require('heimdalljs');
 
 function ApplyPatchesSchema() {
   this.mkdir = 0;
@@ -46,46 +44,23 @@ BroccoliMergeTrees.prototype.debug = function(message, args) {
   this._logger.info(message, args);
 }
 
-function isLinkStateEqual(entryA, entryB) {
-  // We don't symlink files, only directories
-  if (!(entryA.isDirectory() && entryB.isDirectory())) {
-    return true;
-  }
-
-  // We only symlink on systems that support it
-  if (!canSymlink) {
-    return true;
-  }
-
-  // This can change between rebuilds if a dir goes from existing in multiple
-  // input sources to exactly one input source, or vice versa
-  return entryA.linkDir === entryB.linkDir;
-}
-
-function isEqual(entryA, entryB) {
-  return defaultIsEqual(entryA, entryB) && isLinkStateEqual(entryA, entryB);
-}
-
 BroccoliMergeTrees.prototype.build = function() {
   this._logger.debug('deriving patches');
-  var instrumentation = heimdall.start('derivePatches');
+  let instrumentation = heimdall.start('derivePatches - broccoli-merge-trees');
+  const patches = this.in.changes(this.options);
 
-  var fileInfos = this._mergeRelativePath('');
-  var entries = fileInfos.map(function(fileInfo) {
-    return fileInfo.entry;
+
+  console.log(`----------------patches from ${this._name + (this._annotation != null ? ' (' + this._annotation + ')' : '')}`);
+  patches.forEach(patch => {
+    console.log(patch[0] + ' ' + chompPathSep(patch[1]));
   });
 
-  var newTree = FSTree.fromEntries(entries);
-  var patches = this._currentTree.calculatePatch(newTree, isEqual);
+  if (patches.some(change => change[1].endsWith("engines-dist/jobs-ext/assets/img"))) debugger;
+
 
   instrumentation.stats.patches = patches.length;
-  instrumentation.stats.entries = entries.length;
-
   instrumentation.stop();
-
-  this._currentTree = newTree;
-
-  instrumentation = heimdall.start('applyPatches', ApplyPatchesSchema);
+  instrumentation = heimdall.start('applyPatches - broccoli-merge-trees', ApplyPatchesSchema);
 
   try {
     this._logger.debug('applying patches');
@@ -94,30 +69,34 @@ BroccoliMergeTrees.prototype.build = function() {
     this._logger.warn('patch application failed, starting from scratch');
     // Whatever the failure, start again and do a complete build next time
     this._currentTree = FSTree.fromPaths([]);
-    rimraf.sync(this.outputPath);
+    this.out.emptySync('');
     throw e;
   }
 
   instrumentation.stop();
 }
 
-BroccoliMergeTrees.prototype._applyPatch = function (patch, instrumentation) {
+function chompPathSep(path) {
+  // strip trailing path.sep (but both seps on posix and win32);
+  return path.replace(/(\/|\\)$/, '');
+}
 
-  patch.forEach(function(patch) {
-    var operation = patch[0];
-    var relativePath = patch[1];
-    var entry = patch[2];
 
-    var inputFilePath = entry && entry.basePath + '/' + relativePath;
+BroccoliMergeTrees.prototype._applyPatch = function(patch, instrumentation) {
+  patch.forEach(function(change) {
+    patch;
+    var operation = change[0];
+    var relativePath = change[1];
+    var entry = change[2];
 
     switch(operation) {
       case 'mkdir':     {
         instrumentation.mkdir++;
-        return this._applyMkdir(entry, inputFilePath, relativePath);
+        return this._applyMkdir(entry, relativePath);
       }
       case 'rmdir':   {
         instrumentation.rmdir++;
-        return this._applyRmdir(entry, inputFilePath, relativePath);
+        return this._applyRmdir(entry, relativePath);
       }
       case 'unlink':  {
         instrumentation.unlink++;
@@ -125,203 +104,46 @@ BroccoliMergeTrees.prototype._applyPatch = function (patch, instrumentation) {
       }
       case 'create':    {
         instrumentation.create++;
-        return this.out.symlinkSync(inputFilePath, relativePath);
+        return this.out.symlinkSyncFromEntry(entry.tree, entry.relativePath, relativePath);
       }
       case 'change':    {
         instrumentation.change++;
-        return this._applyChange(entry, inputFilePath, relativePath);
+        return this._applyChange(entry, relativePath);
       }
     }
   }, this);
 };
 
-BroccoliMergeTrees.prototype._applyMkdir = function (entry, inputFilePath, outputFilePath) {
+BroccoliMergeTrees.prototype._applyMkdir = function (entry, relativePath) {
   if (entry.linkDir) {
-    return this.out.symlinkSync(inputFilePath, outputFilePath);
+    return this.out.symlinkSyncFromEntry(entry.tree, relativePath, relativePath);
   } else {
-    return this.out.mkdirSync(outputFilePath);
+    return this.out.mkdirSync(relativePath);
   }
 }
 
-BroccoliMergeTrees.prototype._applyRmdir = function (entry, inputFilePath, outputFilePath) {
+BroccoliMergeTrees.prototype._applyRmdir = function (entry, relativePath) {
   if (entry.linkDir) {
-    return this.out.unlinkSync(outputFilePath);
+    return this.out.unlinkSync(relativePath);
   } else {
-    return this.out.rmdirSync(outputFilePath);
+    return this.out.rmdirSync(relativePath);
   }
 }
 
-BroccoliMergeTrees.prototype._applyChange = function (entry, inputFilePath, outputFilePath) {
-  if (entry.isDirectory()) {
+BroccoliMergeTrees.prototype._applyChange = function (entry, outputRelativePath) {
+  if (isDirectory(entry)) {
     if (entry.linkDir) {
       // directory copied -> link
-      this.out.rmdirSync(outputFilePath);
-      this.out.symlinkSync(inputFilePath, outputFilePath);
+      this.out.rmdirSync(outputRelativePath);
+      this.out.symlinkSyncFromEntry(entry.tree, entry.relativePath, outputRelativePath);
     } else {
       // directory link -> copied
-      //
-      // we don't check for `canSymlink` here because that is handled in
-      // `isLinkStateEqual`.  If symlinking is not supported we will not get
-      // directory change operations
-      this.out.unlinkSync(outputFilePath);
-      this.out.mkdirSync(outputFilePath);
-      return
+      this.out.unlinkSync(outputRelativePath);
+      this.out.mkdirSync(outputRelativePath);
     }
   } else {
     // file changed
-    this.out.unlinkSync(outputFilePath);
-    return this.out.symlinkSync(inputFilePath, outputFilePath);
+    this.out.unlinkSync(outputRelativePath);
+    return this.out.symlinkSyncFromEntry(entry.tree, entry.relativePath, outputRelativePath);
   }
 }
-
-BroccoliMergeTrees.prototype._mergeRelativePath = function (baseDir, possibleIndices) {
-  var overwrite = this.options.overwrite;
-  var result = [];
-  var isBaseCase = (possibleIndices === undefined);
-
-  // baseDir has a trailing path.sep if non-empty
-  var i, j, fileName, subEntries;
-
-  var names = this.in.map((tree, index) => {
-    if (possibleIndices == null || possibleIndices.indexOf(index) !== -1) {
-      return tree.readdirSync(baseDir).sort()
-    } else {
-      return []
-    }
-  });
-
-  // Guard against conflicting capitalizations
-  var lowerCaseNames = {}
-  for (i = 0; i < this.in.length; i++) {
-    for (j = 0; j < names[i].length; j++) {
-      fileName = names[i][j]
-      var lowerCaseName = fileName.toLowerCase()
-      // Note: We are using .toLowerCase to approximate the case
-      // insensitivity behavior of HFS+ and NTFS. While .toLowerCase is at
-      // least Unicode aware, there are probably better-suited functions.
-      if (lowerCaseNames[lowerCaseName] === undefined) {
-        lowerCaseNames[lowerCaseName] = {
-          index: i,
-          originalName: fileName
-        }
-      } else {
-        var originalIndex = lowerCaseNames[lowerCaseName].index
-        var originalName = lowerCaseNames[lowerCaseName].originalName
-        if (originalName !== fileName) {
-          throw new Error('Merge error: conflicting capitalizations:\n'
-                          + baseDir + originalName + ' in ' + this.inputPaths[originalIndex] + '\n'
-                          + baseDir + fileName + ' in ' + this.inputPaths[i] + '\n'
-                          + 'Remove one of the files and re-add it with matching capitalization.\n'
-                          + 'We are strict about this to avoid divergent behavior '
-                          + 'between case-insensitive Mac/Windows and case-sensitive Linux.'
-                         )
-        }
-      }
-    }
-  }
-  // From here on out, no files and directories exist with conflicting
-  // capitalizations, which means we can use `===` without .toLowerCase
-  // normalization.
-
-  // Accumulate fileInfo hashes of { isDirectory, indices }.
-  // Also guard against conflicting file types and overwriting.
-  var fileInfo = {}
-  var tree;
-  var infoHash;
-
-  for (i = 0; i < this.in.length; i++) {
-    tree = this.in[i];
-    for (j = 0; j < names[i].length; j++) {
-      fileName = names[i][j]
-
-      var entry = tree.statSync(baseDir + fileName);
-      entry.basePath = tree.root;
-
-      var isDirectory = entry.isDirectory();
-
-      if (fileInfo[fileName] == null) {
-        fileInfo[fileName] = {
-          entry: entry,
-          isDirectory: isDirectory,
-          indices: [i] // indices into inputPaths in which this file exists
-        };
-      } else {
-        fileInfo[fileName].entry = entry;
-        fileInfo[fileName].indices.push(i)
-
-        // Guard against conflicting file types
-        var originallyDirectory = fileInfo[fileName].isDirectory
-        if (originallyDirectory !== isDirectory) {
-          throw new Error('Merge error: conflicting file types: ' + baseDir + fileName
-                          + ' is a ' + (originallyDirectory ? 'directory' : 'file')
-                          + ' in ' + this.inputPaths[fileInfo[fileName].indices[0]]
-                          + ' but a ' + (isDirectory ? 'directory' : 'file')
-                          + ' in ' + this.inputPaths[i] + '\n'
-                          + 'Remove or rename either of those.'
-                         )
-        }
-
-        // Guard against overwriting when disabled
-        if (!isDirectory && !overwrite) {
-          throw new Error('Merge error: '
-                          + 'file ' + baseDir + fileName + ' exists in '
-                          + this.inputPaths[fileInfo[fileName].indices[0]] + ' and ' + this.inputPaths[i] + '\n'
-                          + 'Pass option { overwrite: true } to mergeTrees in order '
-                          + 'to have the latter file win.'
-                         )
-        }
-      }
-    }
-  }
-
-  // Done guarding against all error conditions. Actually merge now.
-  for (i = 0; i < this.in.length; i++) {
-    for (j = 0; j < names[i].length; j++) {
-      fileName = names[i][j]
-      infoHash = fileInfo[fileName]
-
-      if (infoHash.isDirectory) {
-        if (infoHash.indices.length === 1 && canSymlink) {
-          // This directory appears in only one tree: we can symlink it without
-          // reading the full tree
-          infoHash.entry.linkDir = true;
-          result.push(infoHash);
-        } else {
-          if (infoHash.indices[0] === i) { // avoid duplicate recursion
-            subEntries = this._mergeRelativePath(baseDir + fileName + '/', infoHash.indices);
-
-            // FSTreeDiff requires intermediate directory entries, so push
-            // `infoHash` (this dir) as well as sub entries.
-            result.push(infoHash);
-            result.push.apply(result, subEntries);
-          }
-        }
-      } else { // isFile
-        if (infoHash.indices[infoHash.indices.length-1] === i) {
-          result.push(infoHash);
-        } else {
-          // This file exists in a later inputPath. Do nothing here to have the
-          // later file win out and thus "overwrite" the earlier file.
-        }
-      }
-    }
-  }
-
-  if (isBaseCase) {
-    // FSTreeDiff requires entries to be sorted by `relativePath`.
-    return result.sort(function (a, b) {
-      var pathA = a.entry.relativePath;
-      var pathB = b.entry.relativePath;
-
-      if (pathA === pathB) {
-        return 0;
-      } else if (pathA < pathB) {
-        return -1;
-      } else {
-        return 1;
-      }
-    });
-  } else {
-    return result;
-  }
-};
