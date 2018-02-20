@@ -1,5 +1,7 @@
 # master
 
+* Upgrade to node-merge-trees ^2.0.0; this requires Node 6.0.0 or greater
+
 # 2.0.0
 
 * Require Node >= 4
