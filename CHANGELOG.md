@@ -2,7 +2,10 @@
 
 # 3.0.0
 
-* Upgrade to node-merge-trees ^2.0.0; this requires Node 6.0.0 or greater
+* Upgrade to node-merge-trees ^2.0.0; this improves performance and fixes an
+  obscure bug
+
+* Bump minimum Node version to 6.0.0
 
 # 2.0.0
 
