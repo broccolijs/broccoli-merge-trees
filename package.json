@@ -25,11 +25,11 @@
     "merge-trees": "^2.0.0"
   },
   "devDependencies": {
-    "broccoli-fixture": "^0.1.0",
-    "chai": "^3.4.0",
-    "chai-as-promised": "^5.1.0",
-    "mocha": "^2.3.3",
-    "mocha-eslint": "^3.0.1"
+    "broccoli-fixture": "^1.0.0",
+    "chai": "^4.1.2",
+    "chai-as-promised": "^7.1.1",
+    "mocha": "^5.0.1",
+    "mocha-eslint": "^4.1.0"
   },
   "scripts": {
     "test": "mocha",
