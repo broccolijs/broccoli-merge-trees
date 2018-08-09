@@ -26,6 +26,26 @@ describe('MergeTrees', function() {
       baz: {}
     });
   });
+
+  it('gives a useful error when merged trees have collisions', function () {
+    return mergeFixtures([
+      {
+        foo: 'hello',
+      }, {
+        foo: 'morehello',
+      }
+    ]).then(v => {
+      throw Error(`Should not fulfill ${v}`);
+    }, err => {
+      // append input nodes' names
+      expect(err.message).to.contain('[BroccoliMergeTrees] error while merging the following');
+      expect(err.message).to.contain('  1.  [Fixturify]');
+      expect(err.message).to.contain('  2.  [Fixturify]');
+
+      // wrap existing message
+      expect(err.message).to.contain('Merge error: file foo exists in');
+    });
+  });
 });
 
 
