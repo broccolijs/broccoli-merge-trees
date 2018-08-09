@@ -15,7 +15,8 @@
     "copy"
   ],
   "files": [
-    "index.js"
+    "index.js",
+    "flatten.js"
   ],
   "engines": {
     "node": ">=6.0.0"
