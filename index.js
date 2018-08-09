@@ -18,6 +18,7 @@ function BroccoliMergeTrees(inputNodes, options) {
     needsCache: false,
     annotation: options.annotation
   });
+  this.inputNodes = inputNodes;
   this.options = options;
 }
 
@@ -31,5 +32,15 @@ BroccoliMergeTrees.prototype.build = function() {
     });
   }
 
-  this.mergeTrees.merge();
+  try {
+    this.mergeTrees.merge();
+  } catch(err) {
+    if (err !== null && typeof err === 'object') {
+      let nodesList = this.inputNodes.map((node, i) => `  ${i+1}.  ${node.toString()}`).join('\n');
+      let message = `${this.toString()} error while merging the following:\n${nodesList}`;
+
+      err.message = `${message}\n${err.message}`;
+    }
+    throw err;
+  }
 };
