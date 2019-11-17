@@ -2,7 +2,7 @@
 
 var Plugin = require('broccoli-plugin');
 var MergeTrees = require('merge-trees');
-
+var flatten = require('./flatten');
 module.exports = BroccoliMergeTrees;
 BroccoliMergeTrees.prototype = Object.create(Plugin.prototype);
 BroccoliMergeTrees.prototype.constructor = BroccoliMergeTrees;
@@ -13,7 +13,7 @@ function BroccoliMergeTrees(inputNodes, options) {
   if (!Array.isArray(inputNodes)) {
     throw new TypeError(name + ': Expected array, got: [' + inputNodes +']');
   }
-  Plugin.call(this, inputNodes, {
+  Plugin.call(this, flatten(inputNodes, options), {
     persistentOutput: true,
     needsCache: false,
     annotation: options.annotation
@@ -44,3 +44,7 @@ BroccoliMergeTrees.prototype.build = function() {
     throw err;
   }
 };
+
+BroccoliMergeTrees.prototype.ASSIMILATION_PROTOCOL_VERSION = flatten.ASSIMILATION_PROTOCOL_VERSION;
+
+
