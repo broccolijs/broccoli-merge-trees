@@ -5,6 +5,7 @@ const MergeTrees = require('merge-trees');
 
 class BroccoliMergeTrees extends Plugin{
   constructor (inputNodes, options = {}) {
+    let name = 'broccoli-merge-trees:' + (options.annotation || '');
     if (!Array.isArray(inputNodes)) {
       throw new TypeError(name + ': Expected array, got: [' + inputNodes +']');
     }
@@ -14,7 +15,6 @@ class BroccoliMergeTrees extends Plugin{
       annotation: options.annotation
     });
 
-    let name = 'broccoli-merge-trees:' + (options.annotation || '');
 
     this.inputNodes = inputNodes;
     this.options = options;
