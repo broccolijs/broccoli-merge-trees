@@ -3,7 +3,7 @@
 const Plugin = require('broccoli-plugin');
 const MergeTrees = require('merge-trees');
 
-class BroccoliMergeTrees extends Plugin{
+class BroccoliMergeTrees extends Plugin {
   constructor (inputNodes, options = {}) {
     let name = 'broccoli-merge-trees:' + (options.annotation || '');
     if (!Array.isArray(inputNodes)) {
