@@ -12,11 +12,27 @@ npm install --save-dev broccoli-merge-trees
 ```
 
 ## Usage
-
+1. With `new`
 ```js
 var BroccoliMergeTrees = require('broccoli-merge-trees');
 
 var mergedNode = new BroccoliMergeTrees(inputNodes, options);
+```
+2. As a `function call`
+```js
+var broccoliMergeTrees = require('broccoli-merge-trees');
+
+var mergedNode = broccoliMergeTrees(inputNodes, options);
+```
+
+3. As a `base class`
+```js
+const { MergeTrees } = require('broccoli-merge-trees');
+
+class AdavancedMergeTrees extends MergeTrees {
+  // add custom methods and implementations here
+}
+
 ```
 
 * **`inputNodes`**: An array of nodes, whose contents will be merged

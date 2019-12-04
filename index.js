@@ -48,4 +48,4 @@ module.exports = function mergeTrees(...params) {
   return new BroccoliMergeTrees(...params);
 };
 
-module.exports.MergeTrees = MergeTrees;
+module.exports.MergeTrees = BroccoliMergeTrees;
