@@ -13,10 +13,18 @@ npm install --save-dev broccoli-merge-trees
 
 ## Usage
 
+* As a `function call`
 ```js
-var BroccoliMergeTrees = require('broccoli-merge-trees');
+const broccoliMergeTrees = require('broccoli-merge-trees');
 
-var mergedNode = new BroccoliMergeTrees(inputNodes, options);
+let mergedNode = broccoliMergeTrees(inputNodes, options);
+```
+
+* With `new`
+```js
+const { MergeTrees } = require('broccoli-merge-trees');
+
+let mergedNode = new MergeTrees(inputNodes, options);
 ```
 
 * **`inputNodes`**: An array of nodes, whose contents will be merged
@@ -37,9 +45,11 @@ var mergedNode = new BroccoliMergeTrees(inputNodes, options);
 If this is your `Brocfile.js`:
 
 ```js
-var BroccoliMergeTrees = require('broccoli-merge-trees');
+const mergeTrees = require('broccoli-merge-trees');
 
-module.exports = new BroccoliMergeTrees(['public', 'scripts']);
+module.exports = function() {
+  return mergeTrees(['public','scripts']);
+};
 ```
 
 And your project contains these files:
