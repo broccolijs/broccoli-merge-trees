@@ -1,5 +1,11 @@
 # master
 
+# 4.0.0
+
+* [Breaking] Require Node 10 or >= 12
+* Use Class Syntax
+* Upgrade dependencies
+
 # 3.0.0
 
 * Upgrade to node-merge-trees ^2.0.0; this reduces code complexity and fixes an
