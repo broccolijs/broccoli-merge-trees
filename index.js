@@ -23,9 +23,13 @@ class BroccoliMergeTrees extends Plugin {
     if (this.mergeTrees == null) {
       // Defer instantiation until the first build because we only
       // have this.inputPaths and this.outputPath once we build.
+
       this.mergeTrees = new MergeTrees(this.inputPaths, this.outputPath, {
         overwrite: this.options.overwrite,
-        annotation: this.options.annotation
+        annotation: this.options.annotation,
+        _fsUpdaterOptions: {
+          fs: this.output
+        }
       });
     }
 
