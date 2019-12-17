@@ -69,6 +69,26 @@ describe('MergeTrees', function() {
       'a.log': 'B',
     });
   });
+
+  it('smoke test with destDir', async function() {
+    input.write({
+      foo: '1'
+    });
+    input2.write({
+      baz: {}
+    });
+    subject = new MergeTrees([input.path(), input2.path()], {
+      destDir: 'test'
+    });
+    output = createBuilder(subject);
+    await output.build();
+    expect(output.read()).to.deep.equal({
+      test : {
+        foo: '1',
+        baz: {}
+      }
+    });
+  });
 });
 
 
