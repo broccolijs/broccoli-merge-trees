@@ -40,6 +40,8 @@ let mergedNode = new MergeTrees(inputNodes, options);
 
 * `annotation`: A note to help tell multiple plugin instances apart.
 
+* `destDir`: A string representing the destination path that merged files will be copied to.
+
 ### Example
 
 If this is your `Brocfile.js`:
@@ -73,6 +75,26 @@ Then running `broccoli build the-output` will generate this folder:
        └─ logo.png
 
 The parent folders, `public` and `scripts` in this case, are not included in the output. The output tree contains only the files *within* each folder, all mixed together.
+
+------
+
+If this is your `Brocfile.js`:
+
+```js
+var BroccoliMergeTrees = require('broccoli-merge-trees');
+
+module.exports = new BroccoliMergeTrees(['public', 'scripts'], {
+    destDir: 'assets'
+});
+```
+Then running `broccoli build the-output` will generate this folder:
+
+    the-output
+    └─ assets
+        ├─ app.js
+        ├─ index.html
+        └─ images
+        └─ logo.png
 
 ## Contributing
 
