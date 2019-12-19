@@ -1,5 +1,9 @@
 # master
 
+# 4.1.0
+
+* [Enhancement] add `destDir`
+
 # 4.0.0
 
 * [Breaking] Require Node 10 or >= 12
