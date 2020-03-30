@@ -34,5 +34,9 @@
   "scripts": {
     "test": "mocha",
     "test:debug": "mocha debug"
+  },
+  "volta": {
+    "node": "12.16.1",
+    "yarn": "1.22.4"
   }
 }
