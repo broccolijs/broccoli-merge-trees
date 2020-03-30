@@ -1,5 +1,5 @@
 # broccoli-merge-trees
-![CI](https://github.com/broccolijs/broccoli-merge-trees/workflows/CI/badge.svg![CI](https://github.com/broccolijs/broccoli-merge-trees/workflows/CI/badge.svg))
+![CI](https://github.com/broccolijs/broccoli-merge-trees/workflows/CI/badge.svg)
 
 Copy multiple trees of files on top of each other, resulting in a single merged tree.
 
