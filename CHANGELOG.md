@@ -1,5 +1,11 @@
 # master
 
+# 4.2.0
+
+* Use new public location for volta-cli/action
+* switch to GH actions
+* bump all dependencies
+
 # 4.1.0
 
 * [Enhancement] add `destDir`
