@@ -1,7 +1,5 @@
 # broccoli-merge-trees
-
-[![Build Status](https://travis-ci.org/broccolijs/broccoli-merge-trees.svg?branch=master)](https://travis-ci.org/broccolijs/broccoli-merge-trees)
-[![Build status](https://ci.appveyor.com/api/projects/status/9fkvegf4qbvfsg5v?svg=true)](https://ci.appveyor.com/project/embercli/broccoli-merge-trees)
+![CI](https://github.com/broccolijs/broccoli-merge-trees/workflows/CI/badge.svg![CI](https://github.com/broccolijs/broccoli-merge-trees/workflows/CI/badge.svg))
 
 Copy multiple trees of files on top of each other, resulting in a single merged tree.
 
