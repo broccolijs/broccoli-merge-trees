@@ -1,3 +1,9 @@
-node_modules
-test/tmp
-tmp
+# jetbrains
+/.idea/
+/*.iml
+
+# other
+/node_modules
+/test/tmp
+/tmp
+/dist
